@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Point Detective</title>
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="favicon-512.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+  :root{
+    --navy-950:#0a1526;
+    --navy-900:#0f1e38;
+    --navy-800:#152a4a;
+    --navy-700:#1c3760;
+    --navy-600:#274a7d;
+    --cardinal-600:#8a1731;
+    --cardinal-500:#a8203f;
+    --cardinal-400:#c8324f;
+    --gold:#c9a24b;
+    --white:#f5f3ee;
+    --grey-300:#9fb0c7;
+    --grey-500:#5f7292;
+    --green:#3f8f5f;
+    --green-bg:#173324;
+    --amber:#c9a24b;
+    --amber-bg:#332913;
+    --orange:#c1682f;
+    --orange-bg:#331f11;
+    --red:#c8324f;
+    --red-bg:#331419;
+    --radius:14px;
+    --radius-lg:20px;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--navy-950);
+    color:var(--white);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none;
+  }
+  #root{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
+
+  /* ---------- Header ---------- */
+  .topbar{
+    position:relative;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:14px 18px 12px;
+    border-bottom:1px solid var(--navy-700);
+    background:linear-gradient(180deg, var(--navy-900), var(--navy-950));
+    position:sticky;top:0;z-index:20;
+  }
+  .brand{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .brand img{height:170px;width:auto;display:block;}
+  .brand-text{font-weight:800;font-size:14px;letter-spacing:0.02em;line-height:1.1;text-align:center;}
+  .brand-text small{display:block;font-weight:500;font-size:10px;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin-top:2px;}
+  .icon-btn{
+    background:var(--navy-800);border:1px solid var(--navy-600);color:var(--grey-300);
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-size:16px;cursor:pointer;
+    position:absolute;top:14px;right:18px;
+  }
+  .icon-btn:active{background:var(--navy-700);}
+
+  /* ---------- Generic layout ---------- */
+  .screen{padding:20px 18px 40px;display:flex;flex-direction:column;gap:18px;}
+  .field-label{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--grey-300);font-weight:700;margin-bottom:8px;}
+  input[type=text], input[type=number], input[type=password], input[type=email]{
+    width:100%;padding:14px 16px;border-radius:var(--radius);
+    border:1.5px solid var(--navy-600);background:var(--navy-800);color:var(--white);
+    font-size:17px;font-weight:600;
+  }
+  input::placeholder{color:var(--grey-500);}
+  input:focus{outline:none;border-color:var(--gold);}
+
+  .btn{
+    border:none;border-radius:var(--radius);padding:18px;font-size:17px;font-weight:800;
+    cursor:pointer;letter-spacing:0.01em;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn-primary{background:var(--cardinal-500);color:var(--white);}
+  .btn-primary:active{background:var(--cardinal-600);}
+  .btn-secondary{background:var(--navy-800);color:var(--white);border:1.5px solid var(--navy-600);}
+  .btn-secondary:active{background:var(--navy-700);}
+  .btn-ghost{background:transparent;color:var(--grey-300);border:1.5px solid var(--navy-700);}
+  .btn:disabled{opacity:0.35;pointer-events:none;}
+
+  .setup-hero{text-align:center;padding:10px 0 6px;}
+  .setup-hero img{width:150px;height:auto;margin-bottom:6px;}
+  .setup-hero h1{font-size:18px;margin:4px 0 0;font-weight:800;}
+  .setup-hero p{color:var(--grey-300);font-size:13px;margin:4px 0 0;}
+
+  .segmented{display:flex;background:var(--navy-800);border-radius:12px;padding:4px;gap:4px;border:1px solid var(--navy-700);}
+  .segmented button{
+    flex:1;padding:10px;border:none;border-radius:9px;background:transparent;color:var(--grey-300);
+    font-weight:700;font-size:13px;cursor:pointer;
+  }
+  .segmented button.active{background:var(--navy-600);color:var(--white);}
+
+  /* ---------- Scoreboard ---------- */
+  .scoreboard{
+    background:linear-gradient(180deg, var(--navy-800), var(--navy-900));
+    border:1px solid var(--navy-700);border-radius:var(--radius-lg);
+    padding:18px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .score-team{flex:1;text-align:center;}
+  .score-team .name{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--grey-300);font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .score-team .score{font-size:44px;font-weight:900;line-height:1.1;margin-top:2px;}
+  .score-team.us .score{color:var(--gold);}
+  .score-team.opp .score{color:var(--white);}
+  .score-mid{font-size:12px;color:var(--grey-500);font-weight:800;padding:0 4px;}
+  .set-pill{
+    align-self:center;background:var(--navy-700);color:var(--grey-300);font-size:11px;font-weight:800;
+    padding:4px 10px;border-radius:999px;letter-spacing:0.06em;
+  }
+
+  .serving-indicator{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    font-size:13px;color:var(--grey-300);font-weight:700;
+  }
+  .serving-indicator .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);}
+
+  /* ---------- Step card ---------- */
+  .step-card{
+    background:var(--navy-900);border:1px solid var(--navy-700);border-radius:var(--radius-lg);
+    padding:20px 16px;display:flex;flex-direction:column;gap:14px;flex-shrink:0;
+  }
+  .step-title{font-size:15px;font-weight:800;text-align:center;color:var(--white);}
+  .step-sub{font-size:12px;color:var(--grey-300);text-align:center;margin-top:-8px;}
+  .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .choice-grid.stack{grid-template-columns:1fr;}
+  .choice-btn{
+    padding:22px 10px;border-radius:var(--radius);border:1.5px solid var(--navy-600);
+    background:var(--navy-800);color:var(--white);font-weight:800;font-size:16px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+  }
+  .choice-btn .sub{font-size:11px;font-weight:600;color:var(--grey-300);}
+  .choice-btn:active{transform:scale(0.98);}
+  .choice-btn.ace{border-color:var(--green);}
+  .choice-btn.ace:active{background:var(--green-bg);}
+  .choice-btn.error{border-color:var(--red);}
+  .choice-btn.error:active{background:var(--red-bg);}
+  .choice-btn.in{border-color:var(--gold);}
+  .choice-btn.in:active{background:var(--amber-bg);}
+  .choice-btn.team-us{border-color:var(--cardinal-500);}
+  .choice-btn.team-opp{border-color:var(--navy-600);}
+  .choice-btn.yes{border-color:var(--green);}
+  .choice-btn.no{border-color:var(--red);}
+
+  .undo-row{display:flex;justify-content:center;padding-top:4px;}
+  .undo-link{color:var(--grey-500);font-size:12px;font-weight:700;background:none;border:none;cursor:pointer;text-decoration:underline;}
+
+  /* ---------- Reports ---------- */
+  .scope-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+  .scope-tabs button{
+    white-space:nowrap;padding:8px 14px;border-radius:999px;border:1px solid var(--navy-600);
+    background:var(--navy-800);color:var(--grey-300);font-size:12px;font-weight:700;cursor:pointer;
+  }
+  .scope-tabs button.active{background:var(--cardinal-500);color:var(--white);border-color:var(--cardinal-500);}
+
+  .stat-card{background:var(--navy-900);border:1px solid var(--navy-700);border-radius:var(--radius-lg);overflow:hidden;}
+  .stat-card-header{background:var(--navy-800);padding:12px 16px;font-weight:800;font-size:13px;letter-spacing:0.03em;
+    display:flex;align-items:center;justify-content:space-between;}
+  .stat-card-header .badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;}
+  .net-row{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--navy-800);}
+  .net-value{font-size:30px;font-weight:900;}
+  .net-value.pos{color:var(--green);}
+  .net-value.neg{color:var(--red);}
+  .net-value.zero{color:var(--grey-300);}
+  .net-detail{font-size:11px;color:var(--grey-300);line-height:1.5;}
+  .row-table{padding:0 16px;}
+  .row-table .tr{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--navy-800);font-size:13px;}
+  .row-table .tr:last-child{border-bottom:none;}
+  .row-table .tr .label{color:var(--grey-300);}
+  .row-table .tr .val{font-weight:800;}
+  .row-table .tr .val small{font-weight:500;color:var(--grey-500);margin-left:4px;}
+  .pad-bottom{height:16px;}
+
+  .empty-state{
+    text-align:center;padding:50px 20px;color:var(--grey-300);
+  }
+  .empty-state .glyph{font-size:34px;margin-bottom:10px;}
+  .empty-state h3{color:var(--white);font-size:15px;margin:0 0 6px;}
+  .empty-state p{font-size:13px;margin:0;line-height:1.5;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px;padding:14px 16px;font-size:10px;color:var(--grey-300);}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .legend .sw{width:8px;height:8px;border-radius:50%;}
+
+  .bottom-actions{display:flex;gap:10px;padding-top:4px;}
+  .bottom-actions .btn{flex:1;}
+
+  .toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:var(--navy-800);border:1px solid var(--navy-600);color:var(--white);
+    padding:10px 18px;border-radius:999px;font-size:13px;font-weight:700;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);z-index:50;
+  }
+
+  /* ---------- Recent rallies ---------- */
+  .rally-log{display:flex;flex-direction:column;gap:8px;}
+  .rally-log-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--grey-500);font-weight:700;padding:2px 2px 0;}
+  .rally-item{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--navy-900);border:1px solid var(--navy-800);border-radius:10px;
+    padding:10px 12px;font-size:12px;
+  }
+  .rally-item .who{color:var(--grey-300);font-weight:600;}
+  .rally-item .what{font-weight:800;}
+  .rally-item .what.ace{color:var(--green);}
+  .rally-item .what.error{color:var(--red);}
+  .rally-item .what.fbk{color:var(--gold);}
+  .rally-item .score-after{color:var(--grey-500);font-weight:700;font-variant-numeric:tabular-nums;}
+
+  /* ---------- Triangle Report (light card, matches Serve Triangle Logger style) ---------- */
+  .tri-card{
+    background:#ffffff;border-radius:var(--radius-lg);overflow:hidden;
+    box-shadow:0 8px 28px rgba(0,0,0,0.35);
+  }
+  .tri-header{background:var(--navy-950);padding:18px 20px;}
+  .tri-header h2{margin:0;color:#fff;font-size:17px;font-weight:800;letter-spacing:0.01em;}
+  .tri-header p{margin:4px 0 0;color:var(--grey-300);font-size:12px;}
+  .tri-colheader{
+    display:flex;padding:10px 20px;font-size:11px;font-weight:800;letter-spacing:0.06em;
+    color:#8a94a6;background:#f4f6f9;border-bottom:1px solid #e7ebf1;
+  }
+  .tri-colheader .m{flex:1.3;}
+  .tri-colheader .c{flex:1;text-align:left;}
+  .tri-colheader .c.us{color:#1c3e8a;}
+  .tri-colheader .c.opp{color:#a8203f;}
+  .tri-section{
+    background:#eef1f6;color:#42506b;font-size:11px;font-weight:800;letter-spacing:0.05em;
+    padding:9px 20px;border-bottom:1px solid #e2e7ee;border-top:1px solid #e2e7ee;
+  }
+  .tri-net-row{display:flex;padding:16px 20px;border-bottom:1px solid #eef1f5;gap:12px;}
+  .tri-net-label{flex:1.3;font-size:10px;font-weight:800;letter-spacing:0.05em;color:#8a94a6;padding-top:4px;}
+  .tri-net-value{font-size:30px;font-weight:900;line-height:1;}
+  .tri-net-value.pos{color:#2e8b57;}
+  .tri-net-value.neg{color:#c0392b;}
+  .tri-net-value.zero{color:#8a94a6;}
+  .tri-net-detail{flex:2;display:flex;flex-direction:column;gap:6px;justify-content:center;}
+  .tri-net-detail .line{font-size:14px;color:#1a2333;}
+  .tri-net-detail .line b{font-weight:800;font-size:15px;margin-right:5px;}
+  .tri-net-detail .line b.us{color:#1c3e8a;}
+  .tri-net-detail .line b.opp{color:#a8203f;}
+  .tri-net-detail .line .d{color:#8a94a6;font-size:12px;}
+  .tri-plain-row{display:flex;padding:12px 20px;border-bottom:1px solid #eef1f5;font-size:14px;color:#42506b;}
+  .tri-plain-row .m{flex:1.3;}
+  .tri-plain-row .c{flex:1;font-weight:800;color:#1a2333;text-align:left;}
+  .tri-plain-row .c small{display:block;font-weight:600;color:#8a94a6;font-size:10px;margin-top:2px;}
+  .tri-plain-row .c.zone-green{color:#2e8b57;}
+  .tri-plain-row .c.zone-gold{color:#a08420;}
+  .tri-plain-row .c.zone-orange{color:#c1682f;}
+  .tri-plain-row .c.zone-red{color:#c0392b;}
+  .tri-legend{display:flex;flex-wrap:wrap;gap:12px 16px;padding:6px 20px 18px;}
+  .tri-legend-header{
+    font-size:10px;font-weight:800;letter-spacing:0.08em;color:#8a94a6;
+    padding:16px 20px 6px;border-top:1px solid #e2e7ee;margin-top:4px;
+  }
+  .tri-legend span{display:flex;align-items:center;gap:5px;font-size:10px;color:#5a6478;font-weight:600;}
+  .tri-legend .sw{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .tri-legend .sw.green{background:#2e8b57;}
+  .tri-legend .sw.gold{background:#c9a24b;}
+  .tri-legend .sw.orange{background:#c1682f;}
+  .tri-legend .sw.red{background:#c0392b;}
+  .tri-scope-note{text-align:center;font-size:11px;color:var(--grey-500);font-weight:600;padding-top:2px;}
+
+  /* ---------- Rally editing ---------- */
+  .choice-btn.selected{background:var(--navy-600);border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
+  .rally-item{cursor:pointer;}
+  .rally-item:active{background:var(--navy-800);}
+  .edit-banner{
+    background:var(--amber-bg);border:1px solid var(--gold);color:var(--gold);
+    font-size:12px;font-weight:800;text-align:center;padding:8px;border-radius:10px;
+  }
+
+  /* ---------- Set picker (Season history) ---------- */
+  .set-picker{background:var(--navy-900);border:1px solid var(--navy-700);border-radius:var(--radius-lg);padding:14px 16px;}
+  .set-picker-title{font-size:11px;text-transform:uppercase;letter-spacing:0.1em;color:var(--grey-300);font-weight:700;margin-bottom:10px;}
+  .set-pills{display:flex;flex-wrap:wrap;gap:8px;}
+  .set-pill{
+    padding:8px 12px;border-radius:999px;border:1.5px solid var(--navy-600);background:var(--navy-800);
+    color:var(--grey-500);font-size:11px;font-weight:700;cursor:pointer;line-height:1.2;
+  }
+  .set-pill.active{background:var(--cardinal-500);border-color:var(--cardinal-500);color:var(--white);}
+  .set-pill.all-pill{background:var(--navy-600);border-color:var(--navy-600);color:var(--white);}
+  .set-pill.all-pill.active{background:var(--gold);border-color:var(--gold);color:var(--navy-950);}
+
+  /* ---------- Auth / Paywall / Account ---------- */
+  .splash{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:90px 20px;min-height:60vh;}
+  .splash img{width:140px;height:auto;opacity:0.92;}
+  .splash .spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--navy-700);border-top-color:var(--gold);animation:pdspin 0.8s linear infinite;}
+  .splash p{color:var(--grey-300);font-size:13px;margin:0;}
+  @keyframes pdspin{to{transform:rotate(360deg);}}
+
+  .auth-tabs{display:flex;background:var(--navy-800);border-radius:12px;padding:4px;gap:4px;border:1px solid var(--navy-700);}
+  .auth-tabs button{flex:1;padding:11px;border:none;border-radius:9px;background:transparent;color:var(--grey-300);font-weight:700;font-size:13px;cursor:pointer;}
+  .auth-tabs button.active{background:var(--navy-600);color:var(--white);}
+  .auth-error{background:var(--red-bg);border:1px solid var(--red);color:var(--red);font-size:12px;font-weight:700;text-align:center;padding:10px;border-radius:10px;}
+  .auth-note{color:var(--grey-300);font-size:12px;text-align:center;line-height:1.5;}
+  .link-btn{background:none;border:none;color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;padding:4px;}
+
+  .paywall{background:var(--navy-900);border:1px solid var(--navy-700);border-radius:var(--radius-lg);padding:22px 18px;display:flex;flex-direction:column;gap:14px;text-align:center;}
+  .paywall h2{margin:0;font-size:19px;font-weight:800;}
+  .paywall .price{font-size:13px;color:var(--grey-300);}
+  .paywall ul{list-style:none;padding:0;margin:6px 0;display:flex;flex-direction:column;gap:8px;text-align:left;}
+  .paywall li{font-size:13px;color:var(--white);padding-left:22px;position:relative;line-height:1.4;}
+  .paywall li:before{content:"\2713";position:absolute;left:0;color:var(--gold);font-weight:900;}
+  .paywall .confirm-box{background:var(--amber-bg);border:1px solid var(--gold);color:var(--gold);font-size:12px;font-weight:700;padding:12px;border-radius:10px;line-height:1.5;}
+
+  .acct-card{background:var(--navy-900);border:1px solid var(--navy-700);border-radius:var(--radius-lg);padding:18px;display:flex;flex-direction:column;gap:12px;}
+  .acct-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;border-bottom:1px solid var(--navy-800);padding-bottom:10px;}
+  .acct-row:last-of-type{border-bottom:none;}
+  .acct-row .k{color:var(--grey-300);}
+  .acct-row .v{font-weight:800;text-align:right;}
+  .icon-btn.acct{left:18px;right:auto;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Firebase (compat build — no bundler needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+<script>
+/* =========================================================
+   POINT DETECTIVE — v1
+   Match logging: standalone logic, data in localStorage.
+   Accounts + subscription gate: Firebase Auth + Firestore,
+   status kept in sync by the Lemon Squeezy webhook
+   (netlify/functions/lemonsqueezy-webhook.js).
+   ========================================================= */
+
+/* ---------- Config (filled in during rollout) ---------- */
+const firebaseConfig = {
+  apiKey: "REPLACE_ME",
+  authDomain: "REPLACE_ME",
+  projectId: "REPLACE_ME",
+  appId: "REPLACE_ME"
+};
+// Lemon Squeezy variant checkout URL, e.g.
+// "https://YOURSTORE.lemonsqueezy.com/buy/00000000-0000-0000-0000-000000000000"
+const LS_CHECKOUT_URL = "REPLACE_ME";
+const LS_PRICE_LABEL = "";  // optional, e.g. "$9/mo after a 7-day free trial"
+
+const FIREBASE_READY = firebaseConfig.apiKey && firebaseConfig.apiKey !== "REPLACE_ME";
+const LS_READY = LS_CHECKOUT_URL && LS_CHECKOUT_URL !== "REPLACE_ME";
+
+let auth = null, fdb = null;
+if(FIREBASE_READY){
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  fdb = firebase.firestore();
+}
+
+const LOGO_SRC = "PDLogo.png"; // place PDLogo.png alongside index.html
+const LEGACY_KEY = "pd_state_v1";
+
+/* ---------- Auth / subscription state ---------- */
+let authUser = null;
+let authResolved = !FIREBASE_READY;   // no Firebase configured => nothing to wait for
+let subDoc = null;                    // subscribers/{uid} snapshot data, or null
+let subLoaded = !FIREBASE_READY;
+let subUnsub = null;
+let authMode = "login";               // "login" | "signup"
+let authError = "";
+let authBusy = false;
+let authEmail = "";
+let uiScreen = null;                  // null | "account" (transient, not persisted)
+
+function storageKey(){
+  return authUser ? "pd_state_v1_" + authUser.uid : LEGACY_KEY;
+}
+function loadState(){
+  const key = storageKey();
+  try{
+    let raw = localStorage.getItem(key);
+    if(!raw && authUser){
+      // one-time migration: move pre-account data to the first account used here
+      const legacy = localStorage.getItem(LEGACY_KEY);
+      if(legacy){
+        localStorage.setItem(key, legacy);
+        localStorage.setItem(LEGACY_KEY + "__archived", legacy);
+        localStorage.removeItem(LEGACY_KEY);
+        raw = legacy;
+      }
+    }
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {
+    screen: "setup",       // setup | match | reports
+    teamName: "",
+    oppName: "",
+    matches: [],           // archived completed matches
+    current: null          // active match object while logging
+  };
+}
+function saveState(){ localStorage.setItem(storageKey(), JSON.stringify(state)); }
+
+function hasAccess(){
+  if(!FIREBASE_READY) return true;
+  if(!subDoc) return false;
+  const s = subDoc.status;
+  if(s === "on_trial" || s === "active") return true;
+  if(s === "cancelled" || s === "past_due"){
+    const until = subDoc.ends_at || subDoc.renews_at;
+    if(until && new Date(until).getTime() > Date.now()) return true;
+  }
+  return false;
+}
+
+if(FIREBASE_READY){
+  auth.onAuthStateChanged(function(u){
+    authUser = u;
+    authResolved = true;
+    authError = "";
+    uiScreen = null;
+    if(subUnsub){ subUnsub(); subUnsub = null; }
+    subDoc = null;
+    subLoaded = false;
+    state = loadState();
+    if(u){
+      authPass = "";
+      authEmail = u.email || "";
+      subUnsub = fdb.collection("subscribers").doc(u.uid).onSnapshot(
+        function(snap){ subDoc = snap.exists ? snap.data() : null; subLoaded = true; render(); },
+        function(err){ console.warn("subscriber listener error:", err && err.message); subDoc = null; subLoaded = true; render(); }
+      );
+    } else {
+      subLoaded = true;
+    }
+    render();
+  });
+}
+
+let state = loadState();
+let editingIndex = null;
+let editDraft = null;
+
+/* -------- Recompute a set's server chain + score after an edit/delete -------- */
+function recomputeChain(s){
+  for(let i=1;i<s.rallies.length;i++){
+    s.rallies[i].server = s.rallies[i-1].rallyWinner;
+  }
+  let us=0, opp=0;
+  s.rallies.forEach(r=>{ if(r.rallyWinner==="us") us++; else opp++; });
+  s.scoreUs = us; s.scoreOpp = opp;
+  s.serving = s.rallies.length ? s.rallies[s.rallies.length-1].rallyWinner : s.serving;
+  s.pendingServeResult = null;
+  s.pendingFbk = null;
+}
+function startEdit(i){
+  const r = state.current.activeSet.rallies[i];
+  editingIndex = i;
+  editDraft = { server: r.server, serveResult: r.serveResult, fbk: r.fbk, rallyWinner: r.rallyWinner };
+  render();
+}
+function cancelEdit(){ editingIndex=null; editDraft=null; render(); }
+function saveEdit(){
+  const s = state.current.activeSet;
+  const i = editingIndex;
+  const d = editDraft;
+  let finalized;
+  if(d.serveResult === "ace"){
+    finalized = { server: d.server, serveResult:"ace", fbk:null, rallyWinner: d.server };
+  } else if(d.serveResult === "error"){
+    const receiver = d.server === "us" ? "opp" : "us";
+    finalized = { server: d.server, serveResult:"error", fbk:null, rallyWinner: receiver };
+  } else {
+    const receiver = d.server === "us" ? "opp" : "us";
+    if(d.fbk === true){
+      finalized = { server:d.server, serveResult:"in", fbk:true, rallyWinner: receiver };
+    } else {
+      finalized = { server:d.server, serveResult:"in", fbk:false, rallyWinner: d.rallyWinner };
+    }
+  }
+  s.rallies[i] = finalized;
+  recomputeChain(s);
+  editingIndex = null; editDraft = null;
+  saveState(); render();
+}
+function deleteRally(i){
+  const s = state.current.activeSet;
+  s.rallies.splice(i,1);
+  recomputeChain(s);
+  editingIndex = null; editDraft = null;
+  saveState(); render();
+}
+
+/* -------- Match / Set helpers -------- */
+function newMatch(teamName, oppName){
+  return {
+    id: Date.now(),
+    teamName, oppName,
+    createdAt: new Date().toISOString(),
+    sets: [],              // archived completed sets
+    activeSet: newSet(1, null)
+  };
+}
+function newSet(setNumber, firstServer){
+  return {
+    setNumber,
+    scoreUs: 0,
+    scoreOpp: 0,
+    serving: firstServer,      // 'us' | 'opp'
+    rallies: [],                // {server, serveResult, fbk, rallyWinner}
+    pendingServeResult: null,
+    pendingFbk: null
+  };
+}
+
+/* -------- Rally logging logic -------- */
+function logServeResult(result){
+  const s = state.current.activeSet;
+  if(result === "ace"){
+    finalizeRally(s.serving, s.serving, "ace", null);
+  } else if(result === "error"){
+    const receiver = s.serving === "us" ? "opp" : "us";
+    finalizeRally(s.serving, receiver, "error", null);
+  } else if(result === "in"){
+    s.pendingServeResult = "in";
+    render();
+  }
+}
+function logFbk(isYes){
+  const s = state.current.activeSet;
+  const receiver = s.serving === "us" ? "opp" : "us";
+  if(isYes){
+    finalizeRally(s.serving, receiver, "in", true);
+  } else {
+    s.pendingFbk = false;
+    render();
+  }
+}
+function logRallyWinner(winner){
+  const s = state.current.activeSet;
+  finalizeRally(s.serving, winner, "in", false);
+}
+function finalizeRally(server, rallyWinner, serveResult, fbk){
+  const s = state.current.activeSet;
+  s.rallies.push({ server, serveResult, fbk, rallyWinner });
+  if(rallyWinner === "us") s.scoreUs++; else s.scoreOpp++;
+  s.serving = rallyWinner;
+  s.pendingServeResult = null;
+  s.pendingFbk = null;
+  saveState();
+  render();
+}
+function undoLastRally(){
+  const s = state.current.activeSet;
+  const last = s.rallies.pop();
+  if(!last) return;
+  if(last.rallyWinner === "us") s.scoreUs--; else s.scoreOpp--;
+  s.serving = last.server;
+  saveState();
+  render();
+}
+
+function endSet(){
+  const c = state.current;
+  c.sets.push(c.activeSet);
+  const loserOfSet = c.activeSet.scoreUs > c.activeSet.scoreOpp ? "opp" : "us";
+  c.activeSet = newSet(c.sets.length + 1, loserOfSet);
+  saveState();
+  render();
+}
+function endMatch(){
+  const c = state.current;
+  if(c.activeSet.rallies.length > 0){
+    c.sets.push(c.activeSet);
+  }
+  c.finishedAt = new Date().toISOString();
+  state.matches.push(c);
+  state.current = null;
+  state.screen = "setup";
+  saveState();
+  render();
+}
+
+/* -------- Stats computation -------- */
+let seasonDeselected = new Set();
+
+function getAllHistoricalSets(){
+  const list = [];
+  state.matches.forEach((m, mi) => {
+    m.sets.forEach((s, si) => {
+      list.push({ key: `m${mi}-s${si}`, label: `${m.teamName} vs ${m.oppName} — Set ${s.setNumber}`, set: s });
+    });
+  });
+  if(state.current){
+    state.current.sets.forEach((s, si) => {
+      list.push({ key: `cur-s${si}`, label: `${state.current.teamName} vs ${state.current.oppName} — Set ${s.setNumber}`, set: s });
+    });
+    if(state.current.activeSet.rallies.length > 0){
+      list.push({ key: "cur-active", label: `${state.current.teamName} vs ${state.current.oppName} — Set ${state.current.activeSet.setNumber} (live)`, set: state.current.activeSet });
+    }
+  }
+  return list;
+}
+
+function allSetsInScope(scope){
+  // scope: {type:'set'} current set only
+  //        {type:'match'} current match (all archived sets + active)
+  //        {type:'season'} all matches ever (archived + current match if active)
+  let sets = [];
+  if(scope.type === "set"){
+    if(state.current) sets = [state.current.activeSet];
+  } else if(scope.type === "match"){
+    if(state.current) sets = [...state.current.sets, state.current.activeSet];
+  } else if(scope.type === "season"){
+    state.matches.forEach(m => sets.push(...m.sets));
+    if(state.current) sets.push(...state.current.sets, state.current.activeSet);
+  }
+  return sets;
+}
+function computeTriangle(sets){
+  let usAces=0, oppAces=0, usOwnErrors=0, oppOwnErrors=0;
+  let usFbkYes=0, usFbkReceives=0, oppFbkYes=0, oppFbkReceives=0;
+  let usRcvWins=0, usRcvTotal=0, oppRcvWins=0, oppRcvTotal=0;       // receiver-only "comeback" rate
+  let usSharedWins=0, oppSharedWins=0, sharedTransTotal=0;          // combined Rally Wins, both directions, shared denominator
+
+  sets.forEach(s => s.rallies.forEach(r => {
+    const receiver = r.server === "us" ? "opp" : "us";
+    if(r.serveResult === "ace"){
+      if(r.server === "us") usAces++; else oppAces++;
+    } else if(r.serveResult === "error"){
+      if(r.server === "us") usOwnErrors++; else oppOwnErrors++;
+    } else if(r.serveResult === "in"){
+      if(receiver === "us"){ usFbkReceives++; if(r.fbk) usFbkYes++; }
+      else { oppFbkReceives++; if(r.fbk) oppFbkYes++; }
+
+      if(r.fbk === false){
+        // Receiver-only comeback tracking (own denominator per team)
+        if(receiver === "us"){ usRcvTotal++; if(r.rallyWinner==="us") usRcvWins++; }
+        else { oppRcvTotal++; if(r.rallyWinner==="opp") oppRcvWins++; }
+
+        // Combined Rally Wins: every FBK-No rally counted once, shared denominator
+        sharedTransTotal++;
+        if(r.rallyWinner==="us") usSharedWins++; else oppSharedWins++;
+      }
+    }
+  }));
+
+  const usTerminalFor = usAces + oppOwnErrors;
+  const oppTerminalFor = oppAces + usOwnErrors;
+
+  return {
+    totalRallies: sets.reduce((a,s)=>a+s.rallies.length,0),
+    us:{
+      aces: usAces, ownErrors: usOwnErrors, terminalFor: usTerminalFor,
+      fbkYes: usFbkYes, fbkReceives: usFbkReceives,
+      transWins: usSharedWins, transTotal: sharedTransTotal,
+      rcvWins: usRcvWins, rcvTotal: usRcvTotal
+    },
+    opp:{
+      aces: oppAces, ownErrors: oppOwnErrors, terminalFor: oppTerminalFor,
+      fbkYes: oppFbkYes, fbkReceives: oppFbkReceives,
+      transWins: oppSharedWins, transTotal: sharedTransTotal,
+      rcvWins: oppRcvWins, rcvTotal: oppRcvTotal
+    }
+  };
+}
+function pct(n,d){ return d>0 ? Math.round((n/d)*100) : null; }
+function fmtPct(n,d){ const p = pct(n,d); return p===null ? "—" : p+"%"; }
+
+/* -------- Rendering -------- */
+const root = document.getElementById("root");
+
+function el(tag, props={}, children=[]){
+  const e = document.createElement(tag);
+  Object.entries(props).forEach(([k,v])=>{
+    if(k==="class") e.className=v;
+    else if(k==="text") e.textContent=v;
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else e.setAttribute(k,v);
+  });
+  (Array.isArray(children)?children:[children]).forEach(c=>{
+    if(c==null) return;
+    e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  });
+  return e;
+}
+
+function topbar(showReports){
+  const kids = [
+    el("div",{class:"brand"},[
+      el("img",{src:LOGO_SRC, alt:"Point Detective", onerror:(e)=>{e.target.style.display='none';}}),
+      el("div",{class:"brand-text"},["Point Detective", el("small",{},"Find More Wins")])
+    ]),
+    showReports ? el("button",{class:"icon-btn", onClick:()=>{state.screen="reports"; render();}, text:"📊"}) : el("span",{})
+  ];
+  if(FIREBASE_READY && authUser){
+    kids.push(el("button",{class:"icon-btn acct", title: authUser.email || "Account",
+      onClick:()=>{ uiScreen = (uiScreen === "account" ? null : "account"); render(); }, text:"👤"}));
+  }
+  return el("div",{class:"topbar"}, kids);
+}
+
+function renderSetup(){
+  const wrap = el("div",{class:"screen"});
+  wrap.appendChild(el("div",{class:"setup-hero"},[
+    el("img",{src:LOGO_SRC, alt:"Point Detective", onerror:(e)=>{e.target.style.display='none';}}),
+    el("h1",{text:"New Match"}),
+    el("p",{text:"Enter both team names to begin logging."})
+  ]));
+
+  const teamInput = el("input",{type:"text", id:"teamNameInput", placeholder:"Our Team Name", value: state.teamName||""});
+  const oppInput = el("input",{type:"text", id:"oppNameInput", placeholder:"Opponent", value: state.oppName||""});
+
+  wrap.appendChild(el("div",{},[el("div",{class:"field-label",text:"Our Team"}), teamInput]));
+  wrap.appendChild(el("div",{},[el("div",{class:"field-label",text:"Opponent"}), oppInput]));
+
+  const startBtn = el("button",{class:"btn btn-primary", text:"Start Match ▸"});
+  startBtn.addEventListener("click", ()=>{
+    const t = teamInput.value.trim() || "Our Team";
+    const o = oppInput.value.trim() || "Opponent";
+    state.teamName = t; state.oppName = o;
+    state.current = newMatch(t,o);
+    state.screen = "match";
+    saveState();
+    render();
+  });
+  wrap.appendChild(startBtn);
+
+  if(state.matches.length > 0){
+    wrap.appendChild(el("button",{class:"btn btn-ghost", text:"View Season Reports", onClick:()=>{state.screen="reports"; render();}}));
+  }
+  return wrap;
+}
+
+function renderEditPanel(c, s, i){
+  const r = s.rallies[i];
+  const card = el("div",{class:"step-card"});
+
+  if(i===0){
+    card.appendChild(el("div",{class:"field-label", text:"Server"}));
+    const grid = el("div",{class:"choice-grid"});
+    grid.appendChild(el("button",{class:"choice-btn team-us"+(editDraft.server==="us"?" selected":""), text:c.teamName, onClick:()=>{editDraft.server="us"; editDraft.fbk=null; editDraft.rallyWinner=null; render();}}));
+    grid.appendChild(el("button",{class:"choice-btn team-opp"+(editDraft.server==="opp"?" selected":""), text:c.oppName, onClick:()=>{editDraft.server="opp"; editDraft.fbk=null; editDraft.rallyWinner=null; render();}}));
+    card.appendChild(grid);
+  } else {
+    card.appendChild(el("div",{class:"step-sub", text:"Server: "+(editDraft.server==="us"?c.teamName:c.oppName)+" (determined by the previous rally's winner)"}));
+  }
+
+  card.appendChild(el("div",{class:"field-label", text:"Serve Result"}));
+  const resGrid = el("div",{class:"choice-grid"});
+  resGrid.appendChild(el("button",{class:"choice-btn ace"+(editDraft.serveResult==="ace"?" selected":""), text:"Ace", onClick:()=>{editDraft.serveResult="ace"; editDraft.fbk=null; editDraft.rallyWinner=null; render();}}));
+  resGrid.appendChild(el("button",{class:"choice-btn error"+(editDraft.serveResult==="error"?" selected":""), text:"Error", onClick:()=>{editDraft.serveResult="error"; editDraft.fbk=null; editDraft.rallyWinner=null; render();}}));
+  card.appendChild(resGrid);
+  card.appendChild(el("button",{class:"choice-btn in"+(editDraft.serveResult==="in"?" selected":""), style:"width:100%", text:"In Play", onClick:()=>{editDraft.serveResult="in"; render();}}));
+
+  if(editDraft.serveResult === "in"){
+    const receiverName = editDraft.server==="us" ? c.oppName : c.teamName;
+    card.appendChild(el("div",{class:"field-label", text:"Did "+receiverName+" get a First Ball Kill?"}));
+    const fbkGrid = el("div",{class:"choice-grid"});
+    fbkGrid.appendChild(el("button",{class:"choice-btn yes"+(editDraft.fbk===true?" selected":""), text:"Yes", onClick:()=>{editDraft.fbk=true; editDraft.rallyWinner=null; render();}}));
+    fbkGrid.appendChild(el("button",{class:"choice-btn no"+(editDraft.fbk===false?" selected":""), text:"No", onClick:()=>{editDraft.fbk=false; render();}}));
+    card.appendChild(fbkGrid);
+
+    if(editDraft.fbk === false){
+      card.appendChild(el("div",{class:"field-label", text:"Who won the rally?"}));
+      const winGrid = el("div",{class:"choice-grid"});
+      winGrid.appendChild(el("button",{class:"choice-btn team-us"+(editDraft.rallyWinner==="us"?" selected":""), text:c.teamName, onClick:()=>{editDraft.rallyWinner="us"; render();}}));
+      winGrid.appendChild(el("button",{class:"choice-btn team-opp"+(editDraft.rallyWinner==="opp"?" selected":""), text:c.oppName, onClick:()=>{editDraft.rallyWinner="opp"; render();}}));
+      card.appendChild(winGrid);
+    }
+  }
+
+  const canSave = editDraft.serveResult && (editDraft.serveResult!=="in" || editDraft.fbk===true || (editDraft.fbk===false && editDraft.rallyWinner));
+
+  const actionsRow = el("div",{class:"bottom-actions"});
+  const saveBtn = el("button",{class:"btn btn-primary", text:"Save Changes"});
+  if(canSave){ saveBtn.addEventListener("click", saveEdit); } else { saveBtn.setAttribute("disabled","disabled"); }
+  actionsRow.appendChild(saveBtn);
+  actionsRow.appendChild(el("button",{class:"btn btn-ghost", text:"Cancel", onClick:cancelEdit}));
+  card.appendChild(actionsRow);
+  card.appendChild(el("button",{class:"btn btn-secondary", text:"🗑 Delete This Rally", onClick:()=>deleteRally(i)}));
+
+  return card;
+}
+
+function renderMatch(){
+  const wrap = el("div",{class:"screen"});
+  const c = state.current;
+  const s = c.activeSet;
+
+  // Scoreboard
+  wrap.appendChild(el("div",{class:"scoreboard"},[
+    el("div",{class:"score-team us"},[el("div",{class:"name",text:c.teamName}), el("div",{class:"score",text:s.scoreUs})]),
+    el("div",{},[el("div",{class:"score-mid",text:"VS"}), el("div",{class:"set-pill", text:"SET "+s.setNumber})]),
+    el("div",{class:"score-team opp"},[el("div",{class:"name",text:c.oppName}), el("div",{class:"score",text:s.scoreOpp})])
+  ]));
+
+  if(s.serving){
+    wrap.appendChild(el("div",{class:"serving-indicator"},[
+      el("span",{class:"dot"}),
+      el("span",{text: (s.serving==="us"?c.teamName:c.oppName) + " serving"})
+    ]));
+  }
+
+  if(editingIndex !== null && s.rallies[editingIndex]){
+    wrap.appendChild(el("div",{class:"edit-banner", text:"Editing Rally #"+(editingIndex+1)}));
+    wrap.appendChild(renderEditPanel(c, s, editingIndex));
+  } else {
+    const card = el("div",{class:"step-card"});
+
+    if(!s.serving){
+      // First rally of the set: confirm who serves
+      card.appendChild(el("div",{class:"step-title", text:"Who serves first?"}));
+      const grid = el("div",{class:"choice-grid"});
+      grid.appendChild(el("button",{class:"choice-btn team-us", text:c.teamName, onClick:()=>{s.serving="us"; saveState(); render();}}));
+      grid.appendChild(el("button",{class:"choice-btn team-opp", text:c.oppName, onClick:()=>{s.serving="opp"; saveState(); render();}}));
+      card.appendChild(grid);
+      card.appendChild(el("div",{class:"step-sub", text:"This will auto-advance after each rally."}));
+    } else if(!s.pendingServeResult){
+      // Step: Serve result
+      card.appendChild(el("div",{class:"step-title", text:"Serve?"}));
+      const grid = el("div",{class:"choice-grid"});
+      grid.appendChild(el("button",{class:"choice-btn ace", onClick:()=>logServeResult("ace")},[
+        el("span",{text:"Ace"})
+      ]));
+      grid.appendChild(el("button",{class:"choice-btn error", onClick:()=>logServeResult("error")},[
+        el("span",{text:"Error"})
+      ]));
+      card.appendChild(grid);
+      card.appendChild(el("button",{class:"choice-btn in", style:"width:100%", onClick:()=>logServeResult("in")},[
+        el("span",{text:"In Play"})
+      ]));
+    } else if(s.pendingServeResult === "in" && s.pendingFbk === null){
+      // Step: FBK?
+      const receiverName = s.serving === "us" ? c.oppName : c.teamName;
+      card.appendChild(el("div",{class:"step-title", text:"Did "+receiverName}));
+      card.appendChild(el("div",{class:"step-sub", text:"get a First Ball Kill?"}));
+      const grid = el("div",{class:"choice-grid"});
+      grid.appendChild(el("button",{class:"choice-btn yes", text:"Yes", onClick:()=>logFbk(true)}));
+      grid.appendChild(el("button",{class:"choice-btn no", text:"No", onClick:()=>logFbk(false)}));
+      card.appendChild(grid);
+    } else {
+      // Step: who won the rally (transition)
+      card.appendChild(el("div",{class:"step-title", text:"Who won the rally?"}));
+      const grid = el("div",{class:"choice-grid"});
+      grid.appendChild(el("button",{class:"choice-btn team-us", text:c.teamName, onClick:()=>logRallyWinner("us")}));
+      grid.appendChild(el("button",{class:"choice-btn team-opp", text:c.oppName, onClick:()=>logRallyWinner("opp")}));
+      card.appendChild(grid);
+    }
+
+    wrap.appendChild(card);
+  }
+
+  if(s.rallies.length > 0){
+    if(editingIndex === null){
+      wrap.appendChild(el("div",{class:"undo-row"},[
+        el("button",{class:"undo-link", text:"↩ Undo last rally", onClick:undoLastRally})
+      ]));
+    }
+
+    // Full rally list, most recent first, running score at time of each rally, tap to edit
+    let runUs=0, runOpp=0;
+    const withScores = s.rallies.map((r,idx)=>{
+      if(r.rallyWinner==="us") runUs++; else runOpp++;
+      return {...r, idx, scoreUs: runUs, scoreOpp: runOpp};
+    });
+    const ordered = withScores.slice().reverse();
+
+    const log = el("div",{class:"rally-log"});
+    log.appendChild(el("div",{class:"rally-log-title", text:"All Rallies · tap to edit"}));
+    ordered.forEach(r=>{
+      const serverName = r.server==="us" ? c.teamName : c.oppName;
+      let what, whatClass;
+      if(r.serveResult==="ace"){ what="Ace"; whatClass="ace"; }
+      else if(r.serveResult==="error"){ what="Serve Error"; whatClass="error"; }
+      else if(r.fbk){ what="FBK"; whatClass="fbk"; }
+      else { what="Transition · " + (r.rallyWinner==="us"?c.teamName:c.oppName)+" won"; whatClass=""; }
+      log.appendChild(el("div",{class:"rally-item", onClick:()=>startEdit(r.idx)},[
+        el("span",{class:"who", text: "#"+(r.idx+1)+" "+serverName+" serving"}),
+        el("span",{class:"what "+whatClass, text: what}),
+        el("span",{class:"score-after", text: r.scoreUs+"–"+r.scoreOpp})
+      ]));
+    });
+    wrap.appendChild(log);
+  }
+
+  if(editingIndex === null){
+    wrap.appendChild(el("div",{class:"bottom-actions"},[
+      el("button",{class:"btn btn-secondary", text:"End Set", onClick:endSet}),
+      el("button",{class:"btn btn-ghost", text:"End Match", onClick:endMatch})
+    ]));
+  }
+
+  return wrap;
+}
+
+function zoneClass(p){
+  if(p===null) return "";
+  if(p>=48) return "zone-green";
+  if(p>=44) return "zone-gold";
+  if(p>=39) return "zone-orange";
+  return "zone-red";
+}
+function netRow(label, net, usName, usVal, usDetail, oppName, oppVal, oppDetail){
+  const netClass = net>0?"pos":net<0?"neg":"zero";
+  const netText = net>0? "+"+net : String(net);
+  return el("div",{class:"tri-net-row"},[
+    el("div",{},[
+      el("div",{class:"tri-net-label", text:label}),
+      el("div",{class:"tri-net-value "+netClass, text:netText})
+    ]),
+    el("div",{class:"tri-net-detail"},[
+      el("div",{class:"line"},[el("b",{class:"us",text:String(usVal)}), usName+" ", el("span",{class:"d",text:usDetail})]),
+      el("div",{class:"line"},[el("b",{class:"opp",text:String(oppVal)}), oppName+" ", el("span",{class:"d",text:oppDetail})])
+    ])
+  ]);
+}
+function plainRow(label, usVal, usSub, oppVal, oppSub, usZone, oppZone){
+  return el("div",{class:"tri-plain-row"},[
+    el("span",{class:"m", text:label}),
+    el("span",{class:"c "+(usZone||"")},[String(usVal), usSub?el("small",{text:usSub}):null]),
+    el("span",{class:"c "+(oppZone||"")},[String(oppVal), oppSub?el("small",{text:oppSub}):null])
+  ]);
+}
+
+function renderReports(){
+  const wrap = el("div",{class:"screen"});
+  wrap.appendChild(el("div",{class:"step-title", text:"Reports"}));
+
+  if(!state.current && state.matches.length===0){
+    wrap.appendChild(el("div",{class:"empty-state"},[
+      el("div",{class:"glyph", text:"🔍"}),
+      el("h3",{text:"No data yet"}),
+      el("p",{text:"Start a match and log a few rallies — your Triangle stats will show up here."})
+    ]));
+    wrap.appendChild(el("button",{class:"btn btn-primary", text:"◂ Back", onClick:()=>{state.screen = state.current?"match":"setup"; render();}}));
+    return wrap;
+  }
+
+  window._reportScope = window._reportScope || "set";
+  const tabs = el("div",{class:"scope-tabs"});
+  const scopes = [["set","This Set"],["match","This Match"],["season","Season"]];
+  scopes.forEach(([key,label])=>{
+    if(key!=="season" && !state.current) return;
+    const btn = el("button",{text:label, class: window._reportScope===key ? "active":""});
+    btn.addEventListener("click", ()=>{ window._reportScope = key; render(); });
+    tabs.appendChild(btn);
+  });
+  wrap.appendChild(tabs);
+
+  const sets = window._reportScope === "season"
+    ? getAllHistoricalSets().filter(h=>!seasonDeselected.has(h.key)).map(h=>h.set)
+    : allSetsInScope({type: window._reportScope});
+  const tri = computeTriangle(sets);
+  const teamName = state.current ? state.current.teamName : (state.matches[0]?.teamName || "Us");
+  const oppName = state.current ? state.current.oppName : (state.matches[0]?.oppName || "Opponent");
+  const scopeLabel = window._reportScope==="set" ? "This Set" : window._reportScope==="match" ? "This Match" : "Season";
+
+  if(window._reportScope === "season"){
+    const allHist = getAllHistoricalSets();
+    if(allHist.length > 0){
+      const picker = el("div",{class:"set-picker"});
+      picker.appendChild(el("div",{class:"set-picker-title", text:"Filter by Set"}));
+      const pills = el("div",{class:"set-pills"});
+      const allActive = seasonDeselected.size === 0;
+      const allBtn = el("button",{class:"set-pill all-pill"+(allActive?" active":""), text:"ALL"});
+      allBtn.addEventListener("click", ()=>{ seasonDeselected = new Set(); render(); });
+      pills.appendChild(allBtn);
+      allHist.forEach(h=>{
+        const active = !seasonDeselected.has(h.key);
+        const pill = el("button",{class:"set-pill"+(active?" active":""), text:h.label});
+        pill.addEventListener("click", ()=>{
+          if(seasonDeselected.has(h.key)) seasonDeselected.delete(h.key); else seasonDeselected.add(h.key);
+          render();
+        });
+        pills.appendChild(pill);
+      });
+      picker.appendChild(pills);
+      wrap.appendChild(picker);
+    }
+  }
+
+  if(tri.totalRallies === 0){
+    wrap.appendChild(el("div",{class:"empty-state"},[
+      el("div",{class:"glyph", text:"🏐"}),
+      el("h3",{text:"Nothing logged in this scope yet"}),
+      el("p",{text:"Try a different scope, or log a few rallies first."})
+    ]));
+  } else {
+    const card = el("div",{class:"tri-card"});
+
+    card.appendChild(el("div",{class:"tri-header"},[
+      el("h2",{text:"TRIANGLE REPORT"}),
+      el("p",{text: teamName+" vs "+oppName+" — "+scopeLabel})
+    ]));
+    card.appendChild(el("div",{class:"tri-colheader"},[
+      el("span",{class:"m", text:"METRIC"}),
+      el("span",{class:"c us", text:teamName.toUpperCase()}),
+      el("span",{class:"c opp", text:oppName.toUpperCase()})
+    ]));
+
+    // TERMINAL SERVING
+    const netTerm = tri.us.terminalFor - tri.opp.terminalFor;
+    card.appendChild(el("div",{class:"tri-section", text:"TERMINAL SERVING"}));
+    card.appendChild(netRow("NET TERMINAL", netTerm,
+      teamName, tri.us.terminalFor, `${tri.us.aces} aces + ${tri.opp.ownErrors} opp errors`,
+      oppName, tri.opp.terminalFor, `${tri.opp.aces} aces + ${tri.us.ownErrors} opp errors`));
+    card.appendChild(plainRow("Own Aces", tri.us.aces, "", tri.opp.aces, ""));
+    card.appendChild(plainRow("+ Opp Errors", tri.opp.ownErrors, "", tri.us.ownErrors, ""));
+    card.appendChild(plainRow("= Total Terminal", tri.us.terminalFor, "", tri.opp.terminalFor, ""));
+
+    // FIRST BALL KILL
+    const netFbk = tri.us.fbkYes - tri.opp.fbkYes;
+    const usFbkPct = pct(tri.us.fbkYes, tri.us.fbkReceives);
+    const oppFbkPct = pct(tri.opp.fbkYes, tri.opp.fbkReceives);
+    card.appendChild(el("div",{class:"tri-section", text:"FIRST BALL KILL"}));
+    card.appendChild(netRow("NET FBK", netFbk,
+      teamName, tri.us.fbkYes, `${tri.us.fbkYes} / ${tri.us.fbkReceives} receives`,
+      oppName, tri.opp.fbkYes, `${tri.opp.fbkYes} / ${tri.opp.fbkReceives} receives`));
+    card.appendChild(plainRow("FBK Kills",
+      fmtPct(tri.us.fbkYes,tri.us.fbkReceives), `of ${tri.us.fbkReceives} receives`,
+      fmtPct(tri.opp.fbkYes,tri.opp.fbkReceives), `of ${tri.opp.fbkReceives} receives`,
+      zoneClass(usFbkPct), zoneClass(oppFbkPct)));
+
+    card.appendChild(el("div",{class:"tri-legend-header"}, "FBK% ZONES"));
+    card.appendChild(el("div",{class:"tri-legend"},[
+      el("span",{},[el("span",{class:"sw green"}), "48%+ Championship"]),
+      el("span",{},[el("span",{class:"sw gold"}), "44–47% Average"]),
+      el("span",{},[el("span",{class:"sw orange"}), "39–43% Inconsistent"]),
+      el("span",{},[el("span",{class:"sw red"}), "<39% Danger zone"])
+    ]));
+
+    // TRANSITION
+    const netRally = tri.us.transWins - tri.opp.transWins;
+    card.appendChild(el("div",{class:"tri-section", text:"TRANSITION · AFTER FBK NO"}));
+    card.appendChild(netRow("NET RALLY WINS", netRally,
+      teamName, tri.us.transWins, `${tri.us.transWins} / ${tri.us.transTotal} rallies`,
+      oppName, tri.opp.transWins, `${tri.opp.transWins} / ${tri.opp.transTotal} rallies`));
+    card.appendChild(plainRow("Rally Wins",
+      tri.us.transWins, `of ${tri.us.transTotal} rallies`,
+      tri.opp.transWins, `of ${tri.opp.transTotal} rallies`));
+    card.appendChild(plainRow("Rcv Comeback",
+      fmtPct(tri.us.rcvWins, tri.us.rcvTotal), `${tri.us.rcvWins}/${tri.us.rcvTotal} rcv`,
+      fmtPct(tri.opp.rcvWins, tri.opp.rcvTotal), `${tri.opp.rcvWins}/${tri.opp.rcvTotal} rcv`));
+
+    wrap.appendChild(card);
+    wrap.appendChild(el("div",{class:"tri-scope-note", text: tri.totalRallies + " rallies in this scope"}));
+  }
+
+  wrap.appendChild(el("button",{class:"btn btn-secondary", text:"◂ Back", onClick:()=>{state.screen = state.current?"match":"setup"; render();}}));
+  return wrap;
+}
+
+/* -------- Auth / Paywall / Account -------- */
+let authPass = "";
+
+function authFriendlyError(e){
+  const c = (e && e.code) || "";
+  const map = {
+    "auth/invalid-email": "That doesn't look like a valid email address.",
+    "auth/user-disabled": "This account has been disabled.",
+    "auth/user-not-found": "No account found for that email.",
+    "auth/wrong-password": "Incorrect password.",
+    "auth/invalid-credential": "Email or password is incorrect.",
+    "auth/email-already-in-use": "An account already exists for that email — try logging in.",
+    "auth/weak-password": "Password must be at least 6 characters.",
+    "auth/too-many-requests": "Too many attempts. Wait a minute, then try again.",
+    "auth/network-request-failed": "Network error. Check your connection."
+  };
+  return map[c] || (e && e.message) || "Something went wrong. Try again.";
+}
+
+async function doAuth(email, pass){
+  if(authBusy) return;
+  if(!email || !pass){ authError = "Enter your email and password."; render(); return; }
+  authBusy = true; authError = ""; render();
+  try{
+    if(authMode === "login") await auth.signInWithEmailAndPassword(email, pass);
+    else await auth.createUserWithEmailAndPassword(email, pass);
+    // onAuthStateChanged takes it from here
+  }catch(e){
+    authError = authFriendlyError(e);
+  }finally{
+    authBusy = false;
+    render();
+  }
+}
+
+async function doReset(email){
+  if(!email){ authError = "Type your email above first, then tap “Forgot password?”."; render(); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    alert("Password reset email sent to " + email + ". Check your inbox (and spam).");
+  }catch(e){
+    authError = authFriendlyError(e); render();
+  }
+}
+
+function doLogout(){ if(auth) auth.signOut(); }
+
+function startCheckout(){
+  if(!LS_READY || !authUser) return;
+  const back = location.origin + location.pathname + "?checkout=success";
+  const q = [
+    "checkout[email]=" + encodeURIComponent(authUser.email),
+    "checkout[custom][uid]=" + encodeURIComponent(authUser.uid),
+    "checkout[success_url]=" + encodeURIComponent(back)
+  ].join("&");
+  const sep = LS_CHECKOUT_URL.indexOf("?") === -1 ? "?" : "&";
+  window.location.href = LS_CHECKOUT_URL + sep + q;
+}
+
+function fmtDate(iso){
+  try{ return new Date(iso).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"}); }
+  catch(e){ return String(iso); }
+}
+
+function renderSplash(msg){
+  const wrap = el("div",{class:"splash"});
+  wrap.appendChild(el("img",{src:LOGO_SRC, alt:"Point Detective", onerror:(e)=>{e.target.style.display='none';}}));
+  wrap.appendChild(el("div",{class:"spin"}));
+  if(msg) wrap.appendChild(el("p",{text:msg}));
+  return wrap;
+}
+
+function renderAuth(){
+  const wrap = el("div",{class:"screen"});
+  wrap.appendChild(el("div",{class:"setup-hero"},[
+    el("img",{src:LOGO_SRC, alt:"Point Detective", onerror:(e)=>{e.target.style.display='none';}}),
+    el("h1",{text: authMode==="login" ? "Welcome back" : "Create your account"}),
+    el("p",{text:"Point Detective is a subscription app. Sign in to continue."})
+  ]));
+
+  const tabs = el("div",{class:"auth-tabs"});
+  tabs.appendChild(el("button",{class: authMode==="login"?"active":"", text:"Log In",
+    onClick:()=>{ authMode="login"; authError=""; render(); }}));
+  tabs.appendChild(el("button",{class: authMode==="signup"?"active":"", text:"Sign Up",
+    onClick:()=>{ authMode="signup"; authError=""; render(); }}));
+  wrap.appendChild(tabs);
+
+  if(authError) wrap.appendChild(el("div",{class:"auth-error", text: authError}));
+
+  const emailIn = el("input",{type:"text", placeholder:"you@example.com", value: authEmail, autocomplete:"email", autocapitalize:"none", spellcheck:"false"});
+  emailIn.addEventListener("input", ()=>{ authEmail = emailIn.value; });
+  const passIn = el("input",{type:"password", placeholder:"Password", value: authPass, autocomplete: authMode==="login"?"current-password":"new-password"});
+  passIn.addEventListener("input", ()=>{ authPass = passIn.value; });
+  passIn.addEventListener("keydown",(e)=>{ if(e.key==="Enter") doAuth(emailIn.value.trim(), passIn.value); });
+
+  wrap.appendChild(el("div",{},[el("div",{class:"field-label",text:"Email"}), emailIn]));
+  wrap.appendChild(el("div",{},[el("div",{class:"field-label",text:"Password"}), passIn]));
+
+  const submit = el("button",{class:"btn btn-primary", text: authBusy ? "Please wait…" : (authMode==="login"?"Log In ▸":"Create Account ▸")});
+  if(authBusy) submit.setAttribute("disabled","disabled");
+  submit.addEventListener("click", ()=> doAuth(emailIn.value.trim(), passIn.value));
+  wrap.appendChild(submit);
+
+  if(authMode==="login"){
+    wrap.appendChild(el("div",{class:"undo-row"},[
+      el("button",{class:"link-btn", text:"Forgot password?", onClick:()=> doReset(emailIn.value.trim())})
+    ]));
+  }
+  wrap.appendChild(el("div",{class:"auth-note", text:"Your match logs live on this device. Your account controls subscription access only."}));
+  return wrap;
+}
+
+function renderPaywall(){
+  const wrap = el("div",{class:"screen"});
+  const returned = new URLSearchParams(location.search).has("checkout");
+  const pending = returned && subLoaded && !hasAccess();
+
+  const card = el("div",{class:"paywall"});
+  card.appendChild(el("h2",{text: pending ? "Almost there…" : "Start your free trial"}));
+
+  if(pending){
+    card.appendChild(el("div",{class:"confirm-box", text:"We're confirming your subscription with the payment processor. This usually takes only a few seconds — this screen updates on its own."}));
+    card.appendChild(el("button",{class:"btn btn-secondary", text:"Check again", onClick:()=>render()}));
+  } else {
+    if(LS_PRICE_LABEL) card.appendChild(el("div",{class:"price", text: LS_PRICE_LABEL}));
+    card.appendChild(el("ul",{},[
+      el("li",{text:"Log every rally: serve, first ball kill, transition"}),
+      el("li",{text:"Triangle Report by set, match, and season"}),
+      el("li",{text:"Tap any rally to fix it — the score recalculates"})
+    ]));
+    const go = el("button",{class:"btn btn-primary", text: LS_READY ? "Start Free Trial ▸" : "Checkout not set up yet"});
+    if(LS_READY) go.addEventListener("click", startCheckout); else go.setAttribute("disabled","disabled");
+    card.appendChild(go);
+  }
+
+  if(subDoc && subDoc.customer_portal_url){
+    card.appendChild(el("button",{class:"btn btn-secondary", text:"Manage / restore subscription",
+      onClick:()=>{ window.location.href = subDoc.customer_portal_url; }}));
+  }
+  if(subDoc && subDoc.status){
+    card.appendChild(el("div",{class:"auth-note", text:"Current status: " + (subDoc.status_formatted || subDoc.status)}));
+  }
+
+  wrap.appendChild(card);
+  wrap.appendChild(el("button",{class:"btn btn-ghost", text:"Log Out", onClick: doLogout}));
+  return wrap;
+}
+
+function renderAccount(){
+  const wrap = el("div",{class:"screen"});
+  wrap.appendChild(el("div",{class:"step-title", text:"Account"}));
+
+  const card = el("div",{class:"acct-card"});
+  const row = (k,v)=> el("div",{class:"acct-row"},[el("span",{class:"k",text:k}), el("span",{class:"v",text:v})]);
+  card.appendChild(row("Email", authUser.email || "—"));
+  card.appendChild(row("Subscription", subDoc ? (subDoc.status_formatted || subDoc.status) : "No subscription"));
+  if(subDoc && subDoc.status === "on_trial" && subDoc.trial_ends_at) card.appendChild(row("Trial ends", fmtDate(subDoc.trial_ends_at)));
+  if(subDoc && (subDoc.status === "active" || subDoc.status === "on_trial") && subDoc.renews_at) card.appendChild(row("Renews", fmtDate(subDoc.renews_at)));
+  if(subDoc && subDoc.status === "cancelled" && subDoc.ends_at) card.appendChild(row("Access until", fmtDate(subDoc.ends_at)));
+  if(subDoc && (subDoc.card_brand || subDoc.card_last_four)) card.appendChild(row("Card", (subDoc.card_brand||"card") + " ···· " + (subDoc.card_last_four||"")));
+  wrap.appendChild(card);
+
+  if(subDoc && subDoc.customer_portal_url){
+    wrap.appendChild(el("button",{class:"btn btn-primary", text:"Manage Subscription & Billing",
+      onClick:()=>{ window.location.href = subDoc.customer_portal_url; }}));
+  }
+  wrap.appendChild(el("button",{class:"btn btn-secondary", text:"◂ Back to App", onClick:()=>{ uiScreen=null; render(); }}));
+  wrap.appendChild(el("button",{class:"btn btn-ghost", text:"Log Out", onClick: doLogout}));
+  return wrap;
+}
+
+function render(){
+  root.innerHTML = "";
+
+  if(FIREBASE_READY && !authResolved){ root.appendChild(renderSplash()); return; }
+
+  if(FIREBASE_READY && !authUser){
+    root.appendChild(renderAuth());
+    return;
+  }
+
+  if(FIREBASE_READY && !subLoaded){ root.appendChild(renderSplash("Loading your account…")); return; }
+
+  if(FIREBASE_READY && uiScreen === "account"){
+    root.appendChild(topbar(false));
+    root.appendChild(renderAccount());
+    return;
+  }
+
+  if(FIREBASE_READY && !hasAccess()){
+    root.appendChild(topbar(false));
+    root.appendChild(renderPaywall());
+    return;
+  }
+
+  root.appendChild(topbar(state.screen !== "reports"));
+  if(state.screen === "setup") root.appendChild(renderSetup());
+  else if(state.screen === "match") root.appendChild(renderMatch());
+  else if(state.screen === "reports") root.appendChild(renderReports());
+}
+
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Local Netlify folder
+.netlify
+
+node_modules/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+
+# Never commit the Firebase service-account key
+serviceAccount*.json
+firebase-adminsdk*.json

@@ -1,0 +1,14 @@
+{
+  "name": "point-detective",
+  "version": "1.0.0",
+  "description": "Point Detective — beach volleyball rally logger with Lemon Squeezy subscription gateway",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "netlify dev",
+    "sign-webhook": "node scripts/sign-webhook.mjs"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2"
+  }
+}

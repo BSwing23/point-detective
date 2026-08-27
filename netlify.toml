@@ -1,0 +1,13 @@
+# Point Detective — Netlify configuration
+# Static site (no build step) + serverless functions for the Lemon Squeezy webhook.
+
+[build]
+  publish = "."
+  functions = "netlify/functions"
+  command = ""
+
+[functions]
+  node_bundler = "esbuild"
+
+# The Lemon Squeezy webhook posts here:
+#   https://vbpointdetective.com/.netlify/functions/lemonsqueezy-webhook
