@@ -306,6 +306,12 @@
   .auth-tabs button{flex:1;padding:11px;border:none;border-radius:9px;background:transparent;color:var(--grey-300);font-weight:700;font-size:13px;cursor:pointer;}
   .auth-tabs button.active{background:var(--navy-600);color:var(--white);}
   .auth-error{background:var(--red-bg);border:1px solid var(--red);color:var(--red);font-size:12px;font-weight:700;text-align:center;padding:10px;border-radius:10px;}
+  .btn-google{background:var(--white);color:#1f1f1f;border:1.5px solid var(--navy-600);}
+  .btn-google:active{background:#e8e6e0;}
+  .btn-google .gicon{display:flex;align-items:center;}
+  .or-divider{position:relative;text-align:center;margin:2px 0;}
+  .or-divider:before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--navy-700);}
+  .or-divider span{position:relative;background:var(--navy-950);padding:0 12px;color:var(--grey-500);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;}
   .auth-note{color:var(--grey-300);font-size:12px;text-align:center;line-height:1.5;}
   .link-btn{background:none;border:none;color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;padding:4px;}
 
@@ -421,11 +427,15 @@ function hasAccess(){
 }
 
 if(FIREBASE_READY){
+  // Surface errors from a redirect-based Google sign-in (popup fallback path).
+  auth.getRedirectResult().catch(function(e){ if(e && e.code){ authError = authFriendlyError(e); authBusy = false; render(); } });
+
   auth.onAuthStateChanged(function(u){
     authUser = u;
     authResolved = true;
-    authError = "";
+    authBusy = false;
     uiScreen = null;
+    if(u) authError = "";
     if(subUnsub){ subUnsub(); subUnsub = null; }
     subDoc = null;
     subLoaded = false;
@@ -1072,7 +1082,10 @@ function authFriendlyError(e){
     "auth/email-already-in-use": "An account already exists for that email — try logging in.",
     "auth/weak-password": "Password must be at least 6 characters.",
     "auth/too-many-requests": "Too many attempts. Wait a minute, then try again.",
-    "auth/network-request-failed": "Network error. Check your connection."
+    "auth/network-request-failed": "Network error. Check your connection.",
+    "auth/account-exists-with-different-credential": "You already have an account with this email. Log in with your email and password.",
+    "auth/unauthorized-domain": "This site isn't authorized for Google sign-in yet.",
+    "auth/popup-blocked": "Your browser blocked the sign-in popup. Allow popups and try again."
   };
   return map[c] || (e && e.message) || "Something went wrong. Try again.";
 }
@@ -1104,6 +1117,26 @@ async function doReset(email){
 }
 
 function doLogout(){ if(auth) auth.signOut(); }
+
+function doGoogle(){
+  if(authBusy) return;
+  authBusy = true; authError = ""; render();
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  auth.signInWithPopup(provider).catch(function(e){
+    const c = e && e.code;
+    if(c === "auth/popup-closed-by-user" || c === "auth/cancelled-popup-request"){
+      // user dismissed the popup — no error message
+    } else if(c === "auth/popup-blocked" || c === "auth/operation-not-supported-in-this-environment"){
+      auth.signInWithRedirect(provider).catch(function(err){ authError = authFriendlyError(err); authBusy = false; render(); });
+      return;
+    } else {
+      authError = authFriendlyError(e);
+    }
+    authBusy = false;
+    render();
+  });
+}
 
 function startCheckout(){
   if(!LS_READY || !authUser) return;
@@ -1146,6 +1179,18 @@ function renderAuth(){
   wrap.appendChild(tabs);
 
   if(authError) wrap.appendChild(el("div",{class:"auth-error", text: authError}));
+
+  const gicon = el("span",{class:"gicon"});
+  gicon.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">' +
+    '<path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>' +
+    '<path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>' +
+    '<path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>' +
+    '<path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>';
+  const gbtn = el("button",{class:"btn btn-google"},[gicon, authMode==="login" ? "Continue with Google" : "Sign up with Google"]);
+  if(authBusy) gbtn.setAttribute("disabled","disabled");
+  gbtn.addEventListener("click", doGoogle);
+  wrap.appendChild(gbtn);
+  wrap.appendChild(el("div",{class:"or-divider"},[el("span",{text:"or"})]));
 
   const emailIn = el("input",{type:"text", placeholder:"you@example.com", value: authEmail, autocomplete:"email", autocapitalize:"none", spellcheck:"false"});
   emailIn.addEventListener("input", ()=>{ authEmail = emailIn.value; });
