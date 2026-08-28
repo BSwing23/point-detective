@@ -136,6 +136,7 @@
   }
   .step-title{font-size:15px;font-weight:800;text-align:center;color:var(--white);}
   .step-sub{font-size:12px;color:var(--grey-300);text-align:center;margin-top:-8px;}
+  .fbk-hint{font-size:11px;color:var(--grey-500);line-height:1.4;margin:-4px 0 2px;}
   .choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .choice-grid.stack{grid-template-columns:1fr;}
   .choice-btn{
@@ -802,7 +803,9 @@ function renderEditPanel(c, s, i){
 
   if(editDraft.serveResult === "in"){
     const receiverName = editDraft.server==="us" ? c.oppName : c.teamName;
+    const serverName = editDraft.server==="us" ? c.teamName : c.oppName;
     card.appendChild(el("div",{class:"field-label", text:"Did "+receiverName+" get a First Ball Kill?"}));
+    card.appendChild(el("div",{class:"fbk-hint", text:"Point won on their first attack — or "+serverName+" never got the ball back over."}));
     const fbkGrid = el("div",{class:"choice-grid"});
     fbkGrid.appendChild(el("button",{class:"choice-btn yes"+(editDraft.fbk===true?" selected":""), text:"Yes", onClick:()=>{editDraft.fbk=true; editDraft.rallyWinner=null; render();}}));
     fbkGrid.appendChild(el("button",{class:"choice-btn no"+(editDraft.fbk===false?" selected":""), text:"No", onClick:()=>{editDraft.fbk=false; render();}}));
@@ -880,8 +883,9 @@ function renderMatch(){
     } else if(s.pendingServeResult === "in" && s.pendingFbk === null){
       // Step: FBK?
       const receiverName = s.serving === "us" ? c.oppName : c.teamName;
-      card.appendChild(el("div",{class:"step-title", text:"Did "+receiverName}));
-      card.appendChild(el("div",{class:"step-sub", text:"get a First Ball Kill?"}));
+      const serverName = s.serving === "us" ? c.teamName : c.oppName;
+      card.appendChild(el("div",{class:"step-title", text:"Did "+receiverName+" get a First Ball Kill?"}));
+      card.appendChild(el("div",{class:"step-sub", text:"They won the point on their first attack — or "+serverName+" never got the ball back over."}));
       const grid = el("div",{class:"choice-grid"});
       grid.appendChild(el("button",{class:"choice-btn yes", text:"Yes", onClick:()=>logFbk(true)}));
       grid.appendChild(el("button",{class:"choice-btn no", text:"No", onClick:()=>logFbk(false)}));
