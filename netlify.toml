@@ -8,6 +8,8 @@
 
 [functions]
   node_bundler = "esbuild"
+  # firebase-admin has dynamic requires that don't bundle cleanly — ship it as-is.
+  external_node_modules = ["firebase-admin"]
 
 # The Lemon Squeezy webhook posts here:
 #   https://vbpointdetective.com/.netlify/functions/lemonsqueezy-webhook
