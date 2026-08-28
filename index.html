@@ -358,9 +358,8 @@ const firebaseConfig = {
   appId: "1:639290271745:web:2cff5a106c4609366bf800",
   measurementId: "G-YNKV7WFSJ1"
 };
-// Lemon Squeezy variant checkout URL, e.g.
-// "https://YOURSTORE.lemonsqueezy.com/buy/00000000-0000-0000-0000-000000000000"
-const LS_CHECKOUT_URL = "REPLACE_ME";
+// Lemon Squeezy hosted checkout URL for the Point Detective subscription variant.
+const LS_CHECKOUT_URL = "https://gasavb.lemonsqueezy.com/checkout/buy/15fa6146-01dc-47f2-bf67-d0ee5d61ae62";
 const LS_PRICE_LABEL = "";  // optional, e.g. "$9/mo after a 7-day free trial"
 
 const FIREBASE_READY = firebaseConfig.apiKey && firebaseConfig.apiKey !== "REPLACE_ME";
@@ -1143,11 +1142,12 @@ function doGoogle(){
 
 function startCheckout(){
   if(!LS_READY || !authUser) return;
-  const back = location.origin + location.pathname + "?checkout=success";
+  // checkout[custom][uid] is echoed back by the webhook as meta.custom_data.uid.
+  // The post-purchase redirect back to the app is configured in the Lemon Squeezy
+  // product settings (Redirect link -> https://vbpointdetective.com/?checkout=success).
   const q = [
     "checkout[email]=" + encodeURIComponent(authUser.email),
-    "checkout[custom][uid]=" + encodeURIComponent(authUser.uid),
-    "checkout[success_url]=" + encodeURIComponent(back)
+    "checkout[custom][uid]=" + encodeURIComponent(authUser.uid)
   ].join("&");
   const sep = LS_CHECKOUT_URL.indexOf("?") === -1 ? "?" : "&";
   window.location.href = LS_CHECKOUT_URL + sep + q;
