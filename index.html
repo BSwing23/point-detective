@@ -728,7 +728,6 @@ function topbar(showReports){
 function renderSetup(){
   const wrap = el("div",{class:"screen"});
   wrap.appendChild(el("div",{class:"setup-hero"},[
-    el("img",{src:LOGO_SRC, alt:"Point Detective", onerror:(e)=>{e.target.style.display='none';}}),
     el("h1",{text:"New Match"}),
     el("p",{text:"Enter both team names to begin logging."})
   ]));
