@@ -351,7 +351,10 @@
    (netlify/functions/lemonsqueezy-webhook.js).
    ========================================================= */
 
-/* ---------- Config ---------- */
+/* ---------- Config ----------
+   The Firebase apiKey below is a PUBLIC project identifier, not a secret — it is
+   meant to ship in client code. Access is controlled by Firestore security rules
+   and the Firebase authorized-domains list, not by hiding this value. */
 const firebaseConfig = {
   apiKey: "AIzaSyAakuyPXZ1qG4q6ETnoD-tqIk9HYSqDC2Y",
   authDomain: "point-detective.firebaseapp.com",

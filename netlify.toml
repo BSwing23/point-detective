@@ -6,6 +6,12 @@
   functions = "netlify/functions"
   command = ""
 
+[build.environment]
+  # index.html contains the Firebase Web config. The apiKey (AIza...) is a public
+  # project identifier, not a credential — Firebase security is enforced by
+  # Firestore rules + authorized domains. Exclude it from Netlify's secret scan.
+  SECRETS_SCAN_OMIT_PATHS = "index.html"
+
 [functions]
   node_bundler = "esbuild"
   # firebase-admin has dynamic requires that don't bundle cleanly — ship it as-is.
