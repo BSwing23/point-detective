@@ -339,6 +339,9 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 
+<!-- Lemon Squeezy overlay checkout -->
+<script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+
 <script>
 /* =========================================================
    POINT DETECTIVE — v1
@@ -360,7 +363,7 @@ const firebaseConfig = {
 };
 // Lemon Squeezy hosted checkout URL for the Point Detective subscription variant.
 const LS_CHECKOUT_URL = "https://gasavb.lemonsqueezy.com/checkout/buy/15fa6146-01dc-47f2-bf67-d0ee5d61ae62";
-const LS_PRICE_LABEL = "";  // optional, e.g. "$9/mo after a 7-day free trial"
+const LS_PRICE_LABEL = "Free for 3 days, then $7.99/month. Cancel anytime.";
 
 const FIREBASE_READY = firebaseConfig.apiKey && firebaseConfig.apiKey !== "REPLACE_ME";
 const LS_READY = LS_CHECKOUT_URL && LS_CHECKOUT_URL !== "REPLACE_ME";
@@ -1140,17 +1143,42 @@ function doGoogle(){
   });
 }
 
+let lsCheckoutSucceeded = false;
+
+function initLemonSqueezy(tries){
+  tries = tries || 0;
+  if(window.LemonSqueezy && window.LemonSqueezy.Setup){
+    try{
+      window.LemonSqueezy.Setup({
+        eventHandler: function(payload){
+          const ev = payload && payload.event;
+          if(ev && (/success/i.test(ev) || /purchase/i.test(ev))){
+            lsCheckoutSucceeded = true;
+            render();  // Firestore listener will flip the gate once the webhook lands
+          }
+        }
+      });
+    }catch(e){ console.warn("LemonSqueezy.Setup failed:", e); }
+  } else if(tries < 40){
+    setTimeout(function(){ initLemonSqueezy(tries + 1); }, 250);
+  }
+}
+initLemonSqueezy();
+
 function startCheckout(){
   if(!LS_READY || !authUser) return;
   // checkout[custom][uid] is echoed back by the webhook as meta.custom_data.uid.
-  // The post-purchase redirect back to the app is configured in the Lemon Squeezy
-  // product settings (Redirect link -> https://vbpointdetective.com/?checkout=success).
   const q = [
     "checkout[email]=" + encodeURIComponent(authUser.email),
     "checkout[custom][uid]=" + encodeURIComponent(authUser.uid)
   ].join("&");
   const sep = LS_CHECKOUT_URL.indexOf("?") === -1 ? "?" : "&";
-  window.location.href = LS_CHECKOUT_URL + sep + q;
+  const url = LS_CHECKOUT_URL + sep + q;
+  if(window.LemonSqueezy && window.LemonSqueezy.Url && window.LemonSqueezy.Url.Open){
+    window.LemonSqueezy.Url.Open(url);   // in-app overlay; lemon.js appends embed=1
+  } else {
+    window.location.href = url;          // fallback: full-page checkout
+  }
 }
 
 function fmtDate(iso){
@@ -1220,7 +1248,7 @@ function renderAuth(){
 
 function renderPaywall(){
   const wrap = el("div",{class:"screen"});
-  const returned = new URLSearchParams(location.search).has("checkout");
+  const returned = lsCheckoutSucceeded || new URLSearchParams(location.search).has("checkout");
   const pending = returned && subLoaded && !hasAccess();
 
   const card = el("div",{class:"paywall"});
