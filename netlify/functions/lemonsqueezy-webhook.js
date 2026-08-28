@@ -34,7 +34,13 @@ function signatureValid(rawBody, headerSig, secret) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-/* ---------- Events we act on ---------- */
+/* ---------- Events ----------
+   subscription_* events carry a SUBSCRIPTION object in data.attributes:
+     status = on_trial | active | paused | past_due | unpaid | cancelled | expired
+   subscription_payment_* events carry a SUBSCRIPTION-INVOICE object — a different
+   shape whose status is paid | pending | void | refunded. Those must NEVER be
+   written as the subscription status, so they're handled separately and only
+   update payment-health fields. */
 const SUBSCRIPTION_EVENTS = new Set([
   "subscription_created",
   "subscription_updated",
@@ -43,6 +49,8 @@ const SUBSCRIPTION_EVENTS = new Set([
   "subscription_paused",
   "subscription_unpaused",
   "subscription_expired",
+]);
+const PAYMENT_EVENTS = new Set([
   "subscription_payment_success",
   "subscription_payment_failed",
   "subscription_payment_recovered",
@@ -94,8 +102,11 @@ exports.handler = async (event) => {
   const data = payload?.data || {};
   const attrs = data.attributes || {};
 
+  const isSubEvent = SUBSCRIPTION_EVENTS.has(eventName);
+  const isPayEvent = PAYMENT_EVENTS.has(eventName);
+
   // Acknowledge anything we don't handle so Lemon Squeezy stops retrying.
-  if (!SUBSCRIPTION_EVENTS.has(eventName)) {
+  if (!isSubEvent && !isPayEvent) {
     return { statusCode: 200, body: `Ignored event: ${eventName || "unknown"}` };
   }
 
@@ -107,7 +118,11 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: "Server not configured" };
   }
 
-  const subscriptionId = data.id != null ? Number(data.id) : null;
+  // For subscription_* events the subscription id is data.id.
+  // For payment events data.id is the *invoice* id; the subscription id is in attrs.
+  const subscriptionId = isSubEvent
+    ? (data.id != null ? Number(data.id) : null)
+    : (attrs.subscription_id != null ? Number(attrs.subscription_id) : null);
   const email = attrs.user_email || null;
 
   const uid = await resolveUid(firestore, customData, subscriptionId, email);
@@ -120,27 +135,40 @@ exports.handler = async (event) => {
     return { statusCode: 200, body: "No matching user" };
   }
 
-  const urls = attrs.urls || {};
-  const record = {
-    email,
-    status: attrs.status || "unpaid",
-    status_formatted: attrs.status_formatted || null,
-    renews_at: attrs.renews_at || null,
-    ends_at: attrs.ends_at || null,
-    trial_ends_at: attrs.trial_ends_at || null,
-    ls_subscription_id: subscriptionId,
-    ls_customer_id: attrs.customer_id != null ? Number(attrs.customer_id) : null,
-    ls_variant_id: attrs.variant_id != null ? Number(attrs.variant_id) : null,
-    ls_product_name: attrs.product_name || null,
-    ls_variant_name: attrs.variant_name || null,
-    card_brand: attrs.card_brand || null,
-    card_last_four: attrs.card_last_four || null,
-    test_mode: attrs.test_mode === true,
-    customer_portal_url: urls.customer_portal || null,
-    update_payment_method_url: urls.update_payment_method || null,
-    last_event: eventName,
-    updated_at: admin.firestore.FieldValue.serverTimestamp(),
-  };
+  let record;
+  if (isSubEvent) {
+    const urls = attrs.urls || {};
+    record = {
+      email,
+      status: attrs.status || "unpaid",
+      status_formatted: attrs.status_formatted || null,
+      renews_at: attrs.renews_at || null,
+      ends_at: attrs.ends_at || null,
+      trial_ends_at: attrs.trial_ends_at || null,
+      ls_subscription_id: subscriptionId,
+      ls_customer_id: attrs.customer_id != null ? Number(attrs.customer_id) : null,
+      ls_variant_id: attrs.variant_id != null ? Number(attrs.variant_id) : null,
+      ls_product_name: attrs.product_name || null,
+      ls_variant_name: attrs.variant_name || null,
+      card_brand: attrs.card_brand || null,
+      card_last_four: attrs.card_last_four || null,
+      test_mode: attrs.test_mode === true,
+      customer_portal_url: urls.customer_portal || null,
+      update_payment_method_url: urls.update_payment_method || null,
+      last_event: eventName,
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    };
+  } else {
+    // Payment/invoice event — touch ONLY payment-health fields, never `status`.
+    record = {
+      card_brand: attrs.card_brand || null,
+      card_last_four: attrs.card_last_four || null,
+      last_payment_event: eventName,
+      last_payment_status: attrs.status || null, // paid | pending | void | refunded
+      last_payment_at: admin.firestore.FieldValue.serverTimestamp(),
+      updated_at: admin.firestore.FieldValue.serverTimestamp(),
+    };
+  }
 
   try {
     await firestore.collection("subscribers").doc(uid).set(record, { merge: true });
@@ -149,5 +177,6 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: "Write failed" };
   }
 
-  return { statusCode: 200, body: `OK (${eventName} -> ${record.status} for ${uid})` };
+  const outcome = isSubEvent ? record.status : record.last_payment_status;
+  return { statusCode: 200, body: `OK (${eventName} -> ${outcome} for ${uid})` };
 };
