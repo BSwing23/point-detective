@@ -577,14 +577,35 @@ function finalizeRally(server, rallyWinner, serveResult, fbk){
   saveState();
   render();
 }
-function undoLastRally(){
+function undoLastAction(){
   const s = state.current.activeSet;
-  const last = s.rallies.pop();
-  if(!last) return;
-  if(last.rallyWinner === "us") s.scoreUs--; else s.scoreOpp--;
-  s.serving = last.server;
-  saveState();
-  render();
+
+  // 1. Mid-rally: step back one prompt at a time.
+  if(s.pendingFbk === false){          // on "Who won the rally?" -> back to the FBK question
+    s.pendingFbk = null;
+    saveState(); render(); return;
+  }
+  if(s.pendingServeResult){            // on the FBK question -> back to "Serve?"
+    s.pendingServeResult = null;
+    s.pendingFbk = null;
+    saveState(); render(); return;
+  }
+
+  // 2. No rally in progress: undo the last completed rally.
+  if(s.rallies.length > 0){
+    const last = s.rallies.pop();
+    if(last.rallyWinner === "us") s.scoreUs--; else s.scoreOpp--;
+    s.serving = last.server;
+    s.pendingServeResult = null;
+    s.pendingFbk = null;
+    saveState(); render(); return;
+  }
+
+  // 3. Nothing logged yet, but a first server was picked: undo that.
+  if(s.serving){
+    s.serving = null;
+    saveState(); render();
+  }
 }
 
 function endSet(){
@@ -877,13 +898,13 @@ function renderMatch(){
     wrap.appendChild(card);
   }
 
-  if(s.rallies.length > 0){
-    if(editingIndex === null){
-      wrap.appendChild(el("div",{class:"undo-row"},[
-        el("button",{class:"undo-link", text:"↩ Undo last rally", onClick:undoLastRally})
-      ]));
-    }
+  if(editingIndex === null && (s.serving || s.rallies.length > 0)){
+    wrap.appendChild(el("div",{class:"undo-row"},[
+      el("button",{class:"undo-link", text:"↩ Undo last action", onClick:undoLastAction})
+    ]));
+  }
 
+  if(s.rallies.length > 0){
     // Full rally list, most recent first, running score at time of each rally, tap to edit
     let runUs=0, runOpp=0;
     const withScores = s.rallies.map((r,idx)=>{
