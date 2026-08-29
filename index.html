@@ -1113,7 +1113,9 @@ function renderReports(){
   const tri = computeTriangle(sets);
   const teamName = state.current ? state.current.teamName : (state.matches[0]?.teamName || "Us");
   const oppName = state.current ? state.current.oppName : (state.matches[0]?.oppName || "Opponent");
-  const scopeLabel = window._reportScope==="set" ? "This Set" : window._reportScope==="match" ? "This Match" : "Season";
+  const activeSetNo = (state.current && state.current.activeSet) ? state.current.activeSet.setNumber : (sets[0] ? sets[0].setNumber : 1);
+  const scopeLabel = window._reportScope==="set" ? "Set " + activeSetNo
+    : window._reportScope==="match" ? "Match" : "Season";
 
   if(window._reportScope === "season"){
     const allHist = getAllHistoricalSets();
