@@ -592,13 +592,21 @@ function undoLastAction(){
     saveState(); render(); return;
   }
 
-  // 2. No rally in progress: undo the last completed rally.
+  // 2. No rally in progress: roll back the last finalized rally to the step
+  //    where a mistake is most likely, keeping the parts already entered.
   if(s.rallies.length > 0){
     const last = s.rallies.pop();
-    if(last.rallyWinner === "us") s.scoreUs--; else s.scoreOpp--;
-    s.serving = last.server;
-    s.pendingServeResult = null;
-    s.pendingFbk = null;
+    recomputeChain(s);          // reruns score + server chain, clears pending
+    s.serving = last.server;    // we're redoing this rally, so the serve returns to its server
+
+    if(last.serveResult === "in"){
+      // Preserve "In Play"; drop back to the FBK answer (fbk was Yes) or the
+      // rally-winner tap (fbk was No) — no need to re-enter the serve result.
+      s.pendingServeResult = "in";
+      s.pendingFbk = (last.fbk === false) ? false : null;
+    }
+    // Ace / Error finalize with no intermediate step — fully removed, back to "Serve?".
+
     saveState(); render(); return;
   }
 
