@@ -1150,6 +1150,17 @@ function renderReports(){
 
     const matchDate = (window._reportScope !== "season" && state.current) ? formatDate(state.current.createdAt) : "";
     const headerSub = teamName+" vs "+oppName+" — "+scopeLabel + (matchDate ? " · "+matchDate : "");
+
+    // Score line for the Share Card: this set's points, each set's points, or the season total.
+    let scoreSegs;
+    if(window._reportScope === "set"){
+      scoreSegs = sets[0] ? [[sets[0].scoreUs, sets[0].scoreOpp]] : [];
+    } else if(window._reportScope === "match"){
+      scoreSegs = sets.filter(st => (st.scoreUs + st.scoreOpp) > 0).map(st => [st.scoreUs, st.scoreOpp]);
+    } else {
+      let su = 0, so = 0; sets.forEach(st => { su += st.scoreUs; so += st.scoreOpp; });
+      scoreSegs = (su + so) > 0 ? [[su, so]] : [];
+    }
     card.appendChild(el("div",{class:"tri-header"},[
       el("h2",{text:"TRIANGLE REPORT"}),
       el("p",{text: headerSub})
@@ -1211,6 +1222,16 @@ function renderReports(){
     wrap.appendChild(card);
     wrap.appendChild(el("div",{class:"tri-scope-note", text: tri.totalRallies + " rallies in this scope"}));
 
+    const shareBtn = el("button",{class:"btn btn-secondary", text:"🖼 Share Card"});
+    shareBtn.addEventListener("click", ()=> saveShareCard(shareBtn, {
+      teamName, oppName, scopeLabel, matchDate,
+      scopeKey: window._reportScope, scoreSegs,
+      netTerm, usTerminalFor: tri.us.terminalFor, oppTerminalFor: tri.opp.terminalFor,
+      netFbk, usFbkPct, oppFbkPct,
+      netRally, usTransWins: tri.us.transWins, oppTransWins: tri.opp.transWins
+    }));
+    wrap.appendChild(shareBtn);
+
     const snapBtn = el("button",{class:"btn btn-secondary", text:"📸 Save Snapshot"});
     snapBtn.addEventListener("click", ()=> saveTriangleSnapshot(snapBtn, card, teamName, oppName, scopeLabel));
     wrap.appendChild(snapBtn);
@@ -1218,6 +1239,129 @@ function renderReports(){
 
   wrap.appendChild(el("button",{class:"btn btn-secondary", text:"◂ Back", onClick:()=>{state.screen = state.current?"match":"setup"; render();}}));
   return wrap;
+}
+
+/* -------- Condensed 1080x1350 branded Share Card -------- */
+function saveShareCard(btn, o){
+  if(btn._busy) return;
+  if(typeof html2canvas === "undefined"){
+    alert("The share tool hasn't loaded yet — check your connection and try again.");
+    return;
+  }
+  btn._busy = true;
+  const originalText = btn.textContent;
+  btn.textContent = "Rendering…";
+  btn.setAttribute("disabled","disabled");
+
+  const US = "#6ea8e6", OPP = "#d0556c", GOLD = "#c9a24b", WHITE = "#f5f3ee", GREY = "#9fb0c7";
+  const netColor = (n)=> n > 0 ? "#3f8f5f" : (n < 0 ? "#d0556c" : GREY);
+  const netText = (n)=> n > 0 ? "+"+n : String(n);
+
+  const holder = document.createElement("div");
+  holder.style.cssText =
+    "position:fixed;left:-20000px;top:0;width:1080px;height:1350px;box-sizing:border-box;overflow:hidden;"+
+    "padding:72px 72px 56px;display:flex;flex-direction:column;align-items:center;text-align:center;"+
+    "background:linear-gradient(180deg,#0f1e38,#0a1526);color:"+WHITE+";"+
+    "font-family:Arial,Helvetica,sans-serif;";
+
+  const add = (tag, css, text)=>{ const e=document.createElement(tag); if(css) e.style.cssText=css; if(text!=null) e.textContent=text; holder.appendChild(e); return e; };
+
+  const logo = document.createElement("img");
+  logo.src = LOGO_SRC; logo.crossOrigin = "anonymous";
+  logo.style.cssText = "height:210px;width:auto;display:block;";
+  holder.appendChild(logo);
+  add("div","font-weight:800;font-size:34px;letter-spacing:.02em;margin-top:14px;","Point Detective");
+  add("div","font-weight:600;font-size:15px;color:"+GOLD+";letter-spacing:.22em;text-transform:uppercase;margin-top:6px;","Find More Wins");
+
+  add("div","font-weight:800;font-size:42px;line-height:1.15;margin-top:44px;", o.teamName + "  vs  " + o.oppName);
+  add("div","font-size:22px;color:"+GREY+";margin-top:10px;", o.scopeLabel + (o.matchDate ? "  ·  " + o.matchDate : ""));
+
+  if(o.scoreSegs && o.scoreSegs.length){
+    const lbl = o.scopeKey === "season" ? "TOTAL POINTS" : (o.scopeKey === "match" ? "BY SET" : "SET SCORE");
+    add("div","font-size:13px;font-weight:800;letter-spacing:.18em;color:"+GOLD+";margin-top:34px;", lbl);
+    const sc = add("div","font-size:40px;font-weight:900;margin-top:8px;display:flex;gap:26px;justify-content:center;flex-wrap:wrap;");
+    o.scoreSegs.forEach(([u,x])=>{
+      const seg = document.createElement("span");
+      seg.style.whiteSpace = "nowrap";
+      const su = document.createElement("span"); su.style.color = US; su.textContent = u;
+      const dash = document.createElement("span"); dash.style.cssText = "color:"+GREY+";margin:0 12px;"; dash.textContent = "–";
+      const so = document.createElement("span"); so.style.color = OPP; so.textContent = x;
+      seg.appendChild(su); seg.appendChild(dash); seg.appendChild(so);
+      sc.appendChild(seg);
+    });
+  }
+
+  const blocks = document.createElement("div");
+  blocks.style.cssText = "width:100%;margin-top:46px;display:flex;flex-direction:column;gap:22px;";
+  holder.appendChild(blocks);
+
+  const teamSpan = (name, disp, color)=>{
+    const s = document.createElement("span");
+    s.style.whiteSpace = "nowrap";
+    const nm = document.createElement("span");
+    nm.textContent = name;
+    const b = document.createElement("span");
+    b.style.cssText = "color:"+color+";font-weight:800;margin-left:12px;";
+    b.textContent = disp;
+    s.appendChild(nm); s.appendChild(b);
+    return s;
+  };
+  const statBlock = (label, net, usDisp, oppDisp)=>{
+    const b = document.createElement("div");
+    b.style.cssText = "background:rgba(255,255,255,0.045);border:1px solid rgba(255,255,255,0.10);border-radius:22px;padding:26px 30px;";
+    const l = document.createElement("div");
+    l.style.cssText = "font-size:19px;font-weight:800;letter-spacing:.16em;color:"+GOLD+";text-transform:uppercase;";
+    l.textContent = label;
+    const n = document.createElement("div");
+    n.style.cssText = "font-size:66px;font-weight:900;line-height:1.1;margin:6px 0 8px;color:"+netColor(net)+";";
+    n.textContent = netText(net);
+    const sub = document.createElement("div");
+    sub.style.cssText = "font-size:24px;color:"+GREY+";";
+    const sep = document.createElement("span");
+    sep.style.cssText = "margin:0 16px;color:"+GREY+";";
+    sep.textContent = "·";
+    sub.appendChild(teamSpan(o.teamName, usDisp, US));
+    sub.appendChild(sep);
+    sub.appendChild(teamSpan(o.oppName, oppDisp, OPP));
+    b.appendChild(l); b.appendChild(n); b.appendChild(sub);
+    blocks.appendChild(b);
+  };
+
+  const fbk = (p)=> p == null ? "—" : p + "%";
+  statBlock("Terminal", o.netTerm, o.usTerminalFor, o.oppTerminalFor);
+  statBlock("FBK", o.netFbk, fbk(o.usFbkPct), fbk(o.oppFbkPct));
+  statBlock("Rally Wins", o.netRally, o.usTransWins, o.oppTransWins);
+
+  add("div","margin-top:auto;padding-top:30px;font-size:22px;font-weight:600;color:"+GREY+";","www.VBPointDetective.com");
+
+  document.body.appendChild(holder);
+
+  const cleanup = ()=>{ holder.remove(); btn.textContent = originalText; btn.removeAttribute("disabled"); btn._busy = false; };
+  const safe = (v)=> String(v).trim().replace(/[^\w]+/g,"_").replace(/^_+|_+$/g,"") || "x";
+  const fname = "point-detective-"+safe(o.teamName)+"-vs-"+safe(o.oppName)+"-"+safe(o.scopeLabel)+"-card.png";
+
+  const capture = ()=>{
+    html2canvas(holder, { backgroundColor:"#0a1526", width:1080, height:1350, scale:1, useCORS:true, logging:false })
+      .then((canvas)=> new Promise((res)=> canvas.toBlob((b)=>res(b), "image/png")))
+      .then((blob)=>{
+        if(!blob) throw new Error("no blob");
+        const file = new File([blob], fname, { type:"image/png" });
+        if(navigator.canShare && navigator.canShare({ files:[file] })){
+          return navigator.share({ files:[file], title:"Triangle Report",
+            text: o.teamName+" vs "+o.oppName+" — "+o.scopeLabel }).catch(()=>{});
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=> URL.revokeObjectURL(url), 5000);
+      })
+      .catch((e)=>{ console.error("share card failed:", e); alert("Couldn't render the share card. Try again."); })
+      .then(cleanup);
+  };
+
+  if(logo.complete && logo.naturalWidth) capture();
+  else { logo.onload = capture; logo.onerror = capture; }
 }
 
 /* -------- Export the full Triangle Report as one branded PNG -------- */
