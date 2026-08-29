@@ -97,6 +97,9 @@
   .setup-hero img{width:150px;height:auto;margin-bottom:6px;}
   .setup-hero h1{font-size:18px;margin:4px 0 0;font-weight:800;}
   .setup-hero p{color:var(--grey-300);font-size:13px;margin:4px 0 0;}
+  .setup-tools{display:flex;align-items:center;justify-content:center;gap:12px;padding-top:6px;}
+  .setup-tools .tools-sep{color:var(--grey-500);font-weight:700;}
+  .setup-tools-note{text-align:center;font-size:11px;color:var(--grey-500);line-height:1.5;padding:2px 10px 0;}
 
   .segmented{display:flex;background:var(--navy-800);border-radius:12px;padding:4px;gap:4px;border:1px solid var(--navy-700);}
   .segmented button{
@@ -772,6 +775,71 @@ function topbar(showReports){
   return el("div",{class:"topbar"}, kids);
 }
 
+/* -------- History backup: export / import as a JSON file -------- */
+function exportHistory(){
+  const payload = {
+    app: "point-detective",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: {
+      teamName: state.teamName || "",
+      oppName: state.oppName || "",
+      matches: state.matches || [],
+      current: state.current || null
+    }
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const fname = "point-detective-history-" + new Date().toISOString().slice(0,10) + ".json";
+  const file = new File([blob], fname, { type: "application/json" });
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    navigator.share({ files:[file], title:"Point Detective history" }).catch(()=>{});
+    return;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 5000);
+}
+
+function importHistory(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try { parsed = JSON.parse(String(reader.result)); }
+    catch(e){ alert("That file isn't valid Point Detective data."); return; }
+    const d = (parsed && parsed.data) ? parsed.data : parsed;
+    if(!d || !Array.isArray(d.matches)){
+      alert("That file doesn't contain a Point Detective history.");
+      return;
+    }
+    const have = new Set((state.matches || []).map(m => m.id));
+    const toAdd = d.matches.filter(m => m && m.id != null && !have.has(m.id));
+    const dupes = d.matches.length - toAdd.length;
+    if(toAdd.length === 0){
+      alert(dupes > 0
+        ? "Those matches are already in your history — nothing to import."
+        : "No matches found in that file.");
+      return;
+    }
+    const lines = ["Add " + toAdd.length + " match" + (toAdd.length === 1 ? "" : "es") + " from this file?"];
+    if(dupes > 0) lines.push(dupes + " already in your history " + (dupes === 1 ? "was" : "were") + " skipped.");
+    if(!confirm(lines.join("\n"))) return;
+
+    state.matches = (state.matches || []).concat(toAdd)
+      .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+    if(!state.teamName && d.teamName) state.teamName = d.teamName;
+    if(!state.oppName && d.oppName) state.oppName = d.oppName;
+    saveState();
+    state.screen = "reports";
+    window._reportScope = "season";
+    seasonDeselected = new Set();
+    render();
+  };
+  reader.onerror = () => alert("Couldn't read that file.");
+  reader.readAsText(file);
+}
+
 function renderSetup(){
   const wrap = el("div",{class:"screen"});
   wrap.appendChild(el("div",{class:"setup-hero"},[
@@ -800,6 +868,23 @@ function renderSetup(){
   if(state.matches.length > 0){
     wrap.appendChild(el("button",{class:"btn btn-ghost", text:"View Season Reports", onClick:()=>{state.screen="reports"; render();}}));
   }
+
+  const tools = el("div",{class:"setup-tools"});
+  if(state.matches.length > 0 || state.current){
+    tools.appendChild(el("button",{class:"link-btn", text:"Export history", onClick: exportHistory}));
+    tools.appendChild(el("span",{class:"tools-sep", text:"·"}));
+  }
+  const fileInput = el("input",{type:"file", accept:"application/json,.json", style:"display:none"});
+  fileInput.addEventListener("change", (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(f) importHistory(f);
+    e.target.value = "";
+  });
+  tools.appendChild(el("button",{class:"link-btn", text:"Import history", onClick:()=> fileInput.click()}));
+  tools.appendChild(fileInput);
+  wrap.appendChild(tools);
+
+  wrap.appendChild(el("div",{class:"setup-tools-note", text:"History is stored on this device only. Export a backup before switching phones or clearing your browser."}));
   return wrap;
 }
 
