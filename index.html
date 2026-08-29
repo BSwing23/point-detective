@@ -348,6 +348,9 @@
 <!-- Lemon Squeezy overlay checkout -->
 <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
 
+<!-- html2canvas — Save Snapshot export in the Triangle Report -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+
 <script>
 /* =========================================================
    POINT DETECTIVE — v1
@@ -649,16 +652,18 @@ let seasonDeselected = new Set();
 function getAllHistoricalSets(){
   const list = [];
   state.matches.forEach((m, mi) => {
+    const d = formatDate(m.createdAt);
     m.sets.forEach((s, si) => {
-      list.push({ key: `m${mi}-s${si}`, label: `${m.teamName} vs ${m.oppName} — Set ${s.setNumber}`, set: s });
+      list.push({ key: `m${mi}-s${si}`, label: `${m.teamName} vs ${m.oppName} — Set ${s.setNumber}${d ? ` (${d})` : ""}`, set: s });
     });
   });
   if(state.current){
+    const d = formatDate(state.current.createdAt);
     state.current.sets.forEach((s, si) => {
-      list.push({ key: `cur-s${si}`, label: `${state.current.teamName} vs ${state.current.oppName} — Set ${s.setNumber}`, set: s });
+      list.push({ key: `cur-s${si}`, label: `${state.current.teamName} vs ${state.current.oppName} — Set ${s.setNumber}${d ? ` (${d})` : ""}`, set: s });
     });
     if(state.current.activeSet.rallies.length > 0){
-      list.push({ key: "cur-active", label: `${state.current.teamName} vs ${state.current.oppName} — Set ${state.current.activeSet.setNumber} (live)`, set: state.current.activeSet });
+      list.push({ key: "cur-active", label: `${state.current.teamName} vs ${state.current.oppName} — Set ${state.current.activeSet.setNumber}${d ? ` (${d} · live)` : " (live)"}`, set: state.current.activeSet });
     }
   }
   return list;
@@ -728,6 +733,11 @@ function computeTriangle(sets){
 }
 function pct(n,d){ return d>0 ? Math.round((n/d)*100) : null; }
 function fmtPct(n,d){ const p = pct(n,d); return p===null ? "—" : p+"%"; }
+function formatDate(iso){
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return "";
+  return (d.getMonth()+1) + "/" + d.getDate() + "/" + String(d.getFullYear()).slice(-2);
+}
 
 /* -------- Rendering -------- */
 const root = document.getElementById("root");
@@ -1053,9 +1063,11 @@ function renderReports(){
   } else {
     const card = el("div",{class:"tri-card"});
 
+    const matchDate = (window._reportScope !== "season" && state.current) ? formatDate(state.current.createdAt) : "";
+    const headerSub = teamName+" vs "+oppName+" — "+scopeLabel + (matchDate ? " · "+matchDate : "");
     card.appendChild(el("div",{class:"tri-header"},[
       el("h2",{text:"TRIANGLE REPORT"}),
-      el("p",{text: teamName+" vs "+oppName+" — "+scopeLabel})
+      el("p",{text: headerSub})
     ]));
     card.appendChild(el("div",{class:"tri-colheader"},[
       el("span",{class:"m", text:"METRIC"}),
@@ -1113,10 +1125,92 @@ function renderReports(){
 
     wrap.appendChild(card);
     wrap.appendChild(el("div",{class:"tri-scope-note", text: tri.totalRallies + " rallies in this scope"}));
+
+    const snapBtn = el("button",{class:"btn btn-secondary", text:"📸 Save Snapshot"});
+    snapBtn.addEventListener("click", ()=> saveTriangleSnapshot(snapBtn, card, teamName, oppName, scopeLabel));
+    wrap.appendChild(snapBtn);
   }
 
   wrap.appendChild(el("button",{class:"btn btn-secondary", text:"◂ Back", onClick:()=>{state.screen = state.current?"match":"setup"; render();}}));
   return wrap;
+}
+
+/* -------- Export the full Triangle Report as one branded PNG -------- */
+function saveTriangleSnapshot(btn, card, teamName, oppName, scopeLabel){
+  if(btn._busy) return;
+  if(typeof html2canvas === "undefined"){
+    alert("The snapshot tool hasn't loaded yet — check your connection and try again.");
+    return;
+  }
+  btn._busy = true;
+  const originalText = btn.textContent;
+  btn.textContent = "Rendering…";
+  btn.setAttribute("disabled","disabled");
+
+  // Offscreen container: brand banner -> full report -> footer
+  const holder = document.createElement("div");
+  holder.style.cssText = "position:fixed;left:-10000px;top:0;width:520px;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;";
+
+  const brand = document.createElement("div");
+  brand.style.cssText = "display:flex;flex-direction:column;align-items:center;gap:2px;padding:22px 0 16px;background:#0a1526;";
+  const logo = document.createElement("img");
+  logo.src = LOGO_SRC;
+  logo.crossOrigin = "anonymous";
+  logo.style.cssText = "height:96px;width:auto;display:block;";
+  const bt = document.createElement("div");
+  bt.style.cssText = "font-weight:800;font-size:14px;color:#f5f3ee;letter-spacing:.02em;";
+  bt.textContent = "Point Detective";
+  const bs = document.createElement("div");
+  bs.style.cssText = "font-weight:500;font-size:10px;color:#c9a24b;letter-spacing:.12em;text-transform:uppercase;margin-top:2px;";
+  bs.textContent = "Find More Wins";
+  brand.appendChild(logo); brand.appendChild(bt); brand.appendChild(bs);
+
+  const cardClone = card.cloneNode(true);
+  cardClone.style.margin = "0";
+  cardClone.style.boxShadow = "none";
+  cardClone.style.borderRadius = "0";
+
+  const foot = document.createElement("div");
+  foot.style.cssText = "text-align:center;font-size:11px;color:#8a94a6;font-weight:600;padding:14px 0 18px;background:#ffffff;";
+  foot.textContent = "pointdetective.netlify.app";
+
+  holder.appendChild(brand);
+  holder.appendChild(cardClone);
+  holder.appendChild(foot);
+  document.body.appendChild(holder);
+
+  const cleanup = ()=>{
+    holder.remove();
+    btn.textContent = originalText;
+    btn.removeAttribute("disabled");
+    btn._busy = false;
+  };
+
+  const safe = (v)=> String(v).trim().replace(/[^\w]+/g,"_").replace(/^_+|_+$/g,"") || "x";
+  const fname = "point-detective-"+safe(teamName)+"-vs-"+safe(oppName)+"-"+safe(scopeLabel)+".png";
+
+  const capture = ()=>{
+    html2canvas(holder, { backgroundColor:"#ffffff", scale:2, useCORS:true, logging:false })
+      .then((canvas)=> new Promise((res)=> canvas.toBlob((b)=>res(b), "image/png")))
+      .then((blob)=>{
+        if(!blob) throw new Error("no blob");
+        const file = new File([blob], fname, { type:"image/png" });
+        if(navigator.canShare && navigator.canShare({ files:[file] })){
+          return navigator.share({ files:[file], title:"Triangle Report",
+            text: teamName+" vs "+oppName+" — "+scopeLabel }).catch(()=>{});
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=> URL.revokeObjectURL(url), 5000);
+      })
+      .catch((e)=>{ console.error("snapshot failed:", e); alert("Couldn't render the snapshot. Try again."); })
+      .then(cleanup);
+  };
+
+  if(logo.complete && logo.naturalWidth) capture();
+  else { logo.onload = capture; logo.onerror = capture; }
 }
 
 /* -------- Auth / Paywall / Account -------- */
