@@ -274,6 +274,11 @@
   .tri-legend .sw.orange{background:#c1682f;}
   .tri-legend .sw.red{background:#c0392b;}
   .tri-scope-note{text-align:center;font-size:11px;color:var(--grey-500);font-weight:600;padding-top:2px;}
+  .tri-note{
+    font-size:11px;line-height:1.5;color:#5a6478;font-style:italic;
+    padding:12px 20px 16px;border-top:1px solid #eef1f5;background:#f9fafc;
+  }
+  .tri-note b{color:#42506b;font-weight:800;font-style:normal;}
 
   /* ---------- Rally editing ---------- */
   .choice-btn.selected{background:var(--navy-600);border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset;}
@@ -1101,6 +1106,10 @@ function renderReports(){
     card.appendChild(plainRow("Rcv Comeback",
       fmtPct(tri.us.rcvWins, tri.us.rcvTotal), `${tri.us.rcvWins}/${tri.us.rcvTotal} rcv`,
       fmtPct(tri.opp.rcvWins, tri.opp.rcvTotal), `${tri.opp.rcvWins}/${tri.opp.rcvTotal} rcv`));
+    card.appendChild(el("div",{class:"tri-note"},[
+      el("b",{text:"Rcv Comeback: "}),
+      "how often a team wins the rally after receiving serve and failing to convert a First Ball Kill. No standard benchmark exists for this — it's context, not a grade."
+    ]));
 
     wrap.appendChild(card);
     wrap.appendChild(el("div",{class:"tri-scope-note", text: tri.totalRallies + " rallies in this scope"}));
