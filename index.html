@@ -678,7 +678,14 @@ function allSetsInScope(scope){
   //        {type:'season'} all matches ever (archived + current match if active)
   let sets = [];
   if(scope.type === "set"){
-    if(state.current) sets = [state.current.activeSet];
+    if(state.current){
+      const as = state.current.activeSet;
+      // "This Set" = the set you're working on; if you just ended a set and the
+      // new one is still empty, stay on the last set that has data.
+      sets = (as.rallies.length === 0 && state.current.sets.length > 0)
+        ? [state.current.sets[state.current.sets.length - 1]]
+        : [as];
+    }
   } else if(scope.type === "match"){
     if(state.current) sets = [...state.current.sets, state.current.activeSet];
   } else if(scope.type === "season"){
@@ -1113,8 +1120,7 @@ function renderReports(){
   const tri = computeTriangle(sets);
   const teamName = state.current ? state.current.teamName : (state.matches[0]?.teamName || "Us");
   const oppName = state.current ? state.current.oppName : (state.matches[0]?.oppName || "Opponent");
-  const activeSetNo = (state.current && state.current.activeSet) ? state.current.activeSet.setNumber : (sets[0] ? sets[0].setNumber : 1);
-  const scopeLabel = window._reportScope==="set" ? "Set " + activeSetNo
+  const scopeLabel = window._reportScope==="set" ? "Set " + (sets[0] ? sets[0].setNumber : 1)
     : window._reportScope==="match" ? "Match" : "Season";
 
   if(window._reportScope === "season"){
