@@ -389,10 +389,75 @@ if(FIREBASE_READY){
   firebase.initializeApp(firebaseConfig);
   auth = firebase.auth();
   fdb = firebase.firestore();
+  // Offline cache: reads/writes keep working with no signal (beaches, arenas);
+  // queued writes flush automatically on reconnect.
+  try { fdb.enablePersistence({ synchronizeTabs: true }).catch(function(){}); } catch(e){}
 }
 
 const LOGO_SRC = "PDLogo.png"; // place PDLogo.png alongside index.html
 const LEGACY_KEY = "pd_state_v1";
+
+/* ---------- Cross-device sync (local-first; localStorage stays primary) ---------- */
+let syncStatus = "local";     // local | syncing | synced | offline | pending
+let matchUnsub = null;
+let cloudPushTimer = null;
+let lastPushJSON = "";
+
+function dataSnapshot(){
+  return {
+    teamName: state.teamName || "",
+    oppName: state.oppName || "",
+    matches: state.matches || [],
+    current: state.current || null
+  };
+}
+
+// Fold a cloud copy into local state without losing anything logged offline here.
+function mergeRemote(remote){
+  if(!remote) return false;
+  let changed = false;
+  if(!Array.isArray(state.matches)) state.matches = [];
+  const have = new Set(state.matches.map(m => m && m.id));
+  (remote.matches || []).forEach(m => {
+    if(m && m.id != null && !have.has(m.id)){ state.matches.push(m); have.add(m.id); changed = true; }
+  });
+  if(changed){
+    state.matches.sort((a,b)=> String(a && a.createdAt || "").localeCompare(String(b && b.createdAt || "")));
+  }
+  if(!state.current && remote.current){ state.current = remote.current; changed = true; }
+  if(!state.teamName && remote.teamName){ state.teamName = remote.teamName; changed = true; }
+  if(!state.oppName && remote.oppName){ state.oppName = remote.oppName; changed = true; }
+  return changed;
+}
+
+function queueCloudPush(){
+  if(!(FIREBASE_READY && authUser && fdb)) return;
+  if(cloudPushTimer) clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(cloudPushNow, 2500);
+}
+function cloudPushNow(){
+  cloudPushTimer = null;
+  if(!(FIREBASE_READY && authUser && fdb)) return;
+  const payload = dataSnapshot();
+  const json = JSON.stringify(payload);
+  if(json === lastPushJSON) return;
+  lastPushJSON = json;
+  fdb.collection("matchData").doc(authUser.uid).set(Object.assign({}, payload, {
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    clientAt: Date.now()
+  })).catch(function(e){ console.warn("cloud push failed:", e && e.message); });
+}
+
+function updateSyncIndicator(){
+  if(state.screen === "setup" || state.screen === "reports" || uiScreen === "account") render();
+}
+function syncText(){
+  if(!FIREBASE_READY || !authUser) return "History is saved on this device.";
+  if(syncStatus === "synced")  return "✓ Backed up to your account";
+  if(syncStatus === "pending") return "↻ Saving…";
+  if(syncStatus === "offline") return "⚠ Offline — changes save to your account when you reconnect";
+  return "↻ Syncing…";
+}
 
 /* ---------- Auth / subscription state ---------- */
 let authUser = null;
@@ -433,7 +498,11 @@ function loadState(){
     current: null          // active match object while logging
   };
 }
-function saveState(){ localStorage.setItem(storageKey(), JSON.stringify(state)); }
+function saveStateLocalOnly(){ localStorage.setItem(storageKey(), JSON.stringify(state)); }
+function saveState(){
+  saveStateLocalOnly();
+  queueCloudPush();
+}
 
 function hasAccess(){
   if(!FIREBASE_READY) return true;
@@ -460,20 +529,51 @@ if(FIREBASE_READY){
     uiScreen = null;
     if(u) authError = "";
     if(subUnsub){ subUnsub(); subUnsub = null; }
+    if(matchUnsub){ matchUnsub(); matchUnsub = null; }
     subDoc = null;
     subLoaded = false;
+    lastPushJSON = "";
     state = loadState();
     if(u){
       authPass = "";
       authEmail = u.email || "";
+      syncStatus = "syncing";
       subUnsub = fdb.collection("subscribers").doc(u.uid).onSnapshot(
         function(snap){ subDoc = snap.exists ? snap.data() : null; subLoaded = true; render(); },
         function(err){ console.warn("subscriber listener error:", err && err.message); subDoc = null; subLoaded = true; render(); }
       );
+      let firstMatchSnap = true;
+      matchUnsub = fdb.collection("matchData").doc(u.uid).onSnapshot({ includeMetadataChanges: true },
+        function(snap){
+          const md = snap.metadata;
+          if(snap.exists && mergeRemote(snap.data())){ saveStateLocalOnly(); render(); }
+          // First real snapshot: reconcile up so anything logged offline on this
+          // device (and not yet in the cloud) gets pushed.
+          if(firstMatchSnap && !md.fromCache){
+            firstMatchSnap = false;
+            if((state.matches && state.matches.length) || state.current) queueCloudPush();
+          }
+          syncStatus = md.hasPendingWrites ? "pending" : (md.fromCache ? "offline" : "synced");
+          updateSyncIndicator();
+        },
+        function(err){ console.warn("matchData listener error:", err && err.message); syncStatus = "offline"; updateSyncIndicator(); }
+      );
     } else {
       subLoaded = true;
+      syncStatus = "local";
     }
     render();
+  });
+
+  window.addEventListener("online", function(){
+    if(authUser){ syncStatus = "syncing"; updateSyncIndicator(); cloudPushNow(); }
+  });
+  window.addEventListener("offline", function(){
+    if(authUser){ syncStatus = "offline"; updateSyncIndicator(); }
+  });
+  // Best-effort flush of anything still debounced when the app is backgrounded/closed.
+  document.addEventListener("visibilitychange", function(){
+    if(document.visibilityState === "hidden" && cloudPushTimer){ cloudPushNow(); }
   });
 }
 
@@ -932,7 +1032,7 @@ function renderSetup(){
   tools.appendChild(fileInput);
   wrap.appendChild(tools);
 
-  wrap.appendChild(el("div",{class:"setup-tools-note", text:"History is stored on this device only. Export a backup before switching phones or clearing your browser."}));
+  wrap.appendChild(el("div",{class:"setup-tools-note", text: syncText()}));
   return wrap;
 }
 
@@ -1713,7 +1813,15 @@ function renderAccount(){
   if(subDoc && (subDoc.status === "active" || subDoc.status === "on_trial") && subDoc.renews_at) card.appendChild(row("Renews", fmtDate(subDoc.renews_at)));
   if(subDoc && subDoc.status === "cancelled" && subDoc.ends_at) card.appendChild(row("Access until", fmtDate(subDoc.ends_at)));
   if(subDoc && (subDoc.card_brand || subDoc.card_last_four)) card.appendChild(row("Card", (subDoc.card_brand||"card") + " ···· " + (subDoc.card_last_four||"")));
+  const matchCount = (state.matches ? state.matches.length : 0) + (state.current ? 1 : 0);
+  card.appendChild(row("Match history", matchCount + (matchCount === 1 ? " match" : " matches")));
+  card.appendChild(row("Backup", syncStatus === "synced" ? "Backed up to your account"
+    : syncStatus === "offline" ? "Offline — will sync"
+    : syncStatus === "pending" ? "Saving…" : "Syncing…"));
   wrap.appendChild(card);
+
+  wrap.appendChild(el("button",{class:"btn btn-secondary", text:"↻ Sync now",
+    onClick:()=>{ syncStatus = "syncing"; render(); cloudPushNow(); }}));
 
   if(subDoc && subDoc.customer_portal_url){
     wrap.appendChild(el("button",{class:"btn btn-primary", text:"Manage Subscription & Billing",
