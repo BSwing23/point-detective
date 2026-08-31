@@ -202,6 +202,7 @@
 
   .bottom-actions{display:flex;gap:10px;padding-top:4px;}
   .bottom-actions .btn{flex:1;}
+  .actions-hint{text-align:center;font-size:11px;color:var(--grey-500);line-height:1.4;padding-top:8px;}
 
   .toast{
     position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
@@ -628,25 +629,55 @@ function undoLastAction(){
   }
 }
 
+function toast(msg){
+  const t = el("div",{class:"toast", text:msg});
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.transition = "opacity .4s"; t.style.opacity = "0"; }, 2000);
+  setTimeout(()=> t.remove(), 2600);
+}
+
 function endSet(){
   const c = state.current;
-  c.sets.push(c.activeSet);
-  const loserOfSet = c.activeSet.scoreUs > c.activeSet.scoreOpp ? "opp" : "us";
+  const s = c.activeSet;
+  if(s.rallies.length === 0){
+    alert("Nothing logged in Set " + s.setNumber + " yet.");
+    return;
+  }
+  if(!confirm("End Set " + s.setNumber + " (" + s.scoreUs + "–" + s.scoreOpp + ") and start the next set?")) return;
+  c.sets.push(s);
+  const loserOfSet = s.scoreUs > s.scoreOpp ? "opp" : "us";
   c.activeSet = newSet(c.sets.length + 1, loserOfSet);
   saveState();
   render();
 }
+
 function endMatch(){
   const c = state.current;
-  if(c.activeSet.rallies.length > 0){
-    c.sets.push(c.activeSet);
+  const finalSets = c.sets.slice();
+  if(c.activeSet.rallies.length > 0) finalSets.push(c.activeSet);
+
+  if(finalSets.length === 0){
+    if(!confirm("This match has no rallies logged. Discard it?")) return;
+    state.current = null;
+    state.screen = "setup";
+    saveState();
+    render();
+    return;
   }
+
+  const scoreStr = finalSets.map(s => s.scoreUs + "–" + s.scoreOpp).join(", ");
+  const msg = "Finish and save this match?\n\n" + c.teamName + " vs " + c.oppName +
+    "\n" + finalSets.length + (finalSets.length === 1 ? " set" : " sets") + "  (" + scoreStr + ")";
+  if(!confirm(msg)) return;
+
+  c.sets = finalSets;
   c.finishedAt = new Date().toISOString();
   state.matches.push(c);
   state.current = null;
   state.screen = "setup";
   saveState();
   render();
+  toast("Match saved ✓  It's in your Season report.");
 }
 
 /* -------- Stats computation -------- */
@@ -1063,8 +1094,9 @@ function renderMatch(){
   if(editingIndex === null){
     wrap.appendChild(el("div",{class:"bottom-actions"},[
       el("button",{class:"btn btn-secondary", text:"End Set", onClick:endSet}),
-      el("button",{class:"btn btn-ghost", text:"End Match", onClick:endMatch})
+      el("button",{class:"btn btn-ghost", text:"Finish Match", onClick:endMatch})
     ]));
+    wrap.appendChild(el("div",{class:"actions-hint", text:"End Set starts the next set. Finish Match saves the whole match and closes it."}));
   }
 
   return wrap;
