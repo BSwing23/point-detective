@@ -1260,8 +1260,13 @@ function renderReports(){
     ? getAllHistoricalSets().filter(h=>!seasonDeselected.has(h.key)).map(h=>h.set)
     : allSetsInScope({type: window._reportScope});
   const tri = computeTriangle(sets);
-  const teamName = state.current ? state.current.teamName : (state.matches[0]?.teamName || "Us");
-  const oppName = state.current ? state.current.oppName : (state.matches[0]?.oppName || "Opponent");
+  // Set/Match scope always has state.current. For Season without a live match,
+  // name from the most recently created match — not matches[0] (arbitrary order).
+  const latestMatch = (state.matches || []).slice()
+    .sort((a,b)=> String(b && b.createdAt || "").localeCompare(String(a && a.createdAt || "")))[0];
+  const nameSource = state.current || latestMatch || null;
+  const teamName = nameSource ? nameSource.teamName : "Us";
+  const oppName = nameSource ? nameSource.oppName : "Opponent";
   const scopeLabel = window._reportScope==="set" ? "Set " + (sets[0] ? sets[0].setNumber : 1)
     : window._reportScope==="match" ? "Match" : "Season";
 
@@ -1299,7 +1304,10 @@ function renderReports(){
     const card = el("div",{class:"tri-card"});
 
     const matchDate = (window._reportScope !== "season" && state.current) ? formatDate(state.current.createdAt) : "";
-    const headerSub = teamName+" vs "+oppName+" — "+scopeLabel + (matchDate ? " · "+matchDate : "");
+    // Season sets can span multiple opponents — no single opponent name applies.
+    const headerSub = window._reportScope === "season"
+      ? teamName + " — Season"
+      : teamName+" vs "+oppName+" — "+scopeLabel + (matchDate ? " · "+matchDate : "");
 
     // Score line for the Share Card: this set's points, each set's points, or the season total.
     let scoreSegs;
@@ -1423,7 +1431,8 @@ function saveShareCard(btn, o){
   add("div","font-weight:800;font-size:34px;letter-spacing:.02em;margin-top:14px;","Point Detective");
   add("div","font-weight:600;font-size:15px;color:"+GOLD+";letter-spacing:.22em;text-transform:uppercase;margin-top:6px;","Find More Wins");
 
-  add("div","font-weight:800;font-size:42px;line-height:1.15;margin-top:44px;", o.teamName + "  vs  " + o.oppName);
+  add("div","font-weight:800;font-size:42px;line-height:1.15;margin-top:44px;",
+    o.scopeKey === "season" ? o.teamName : (o.teamName + "  vs  " + o.oppName));
   add("div","font-size:22px;color:"+GREY+";margin-top:10px;", o.scopeLabel + (o.matchDate ? "  ·  " + o.matchDate : ""));
 
   if(o.scoreSegs && o.scoreSegs.length){
@@ -1488,7 +1497,11 @@ function saveShareCard(btn, o){
 
   const cleanup = ()=>{ holder.remove(); btn.textContent = originalText; btn.removeAttribute("disabled"); btn._busy = false; };
   const safe = (v)=> String(v).trim().replace(/[^\w]+/g,"_").replace(/^_+|_+$/g,"") || "x";
-  const fname = "point-detective-"+safe(o.teamName)+"-vs-"+safe(o.oppName)+"-"+safe(o.scopeLabel)+"-card.png";
+  const matchup = o.scopeKey === "season" ? safe(o.teamName) : safe(o.teamName)+"-vs-"+safe(o.oppName);
+  const fname = "point-detective-"+matchup+"-"+safe(o.scopeLabel)+"-card.png";
+  const shareText = o.scopeKey === "season"
+    ? o.teamName+" — Season"
+    : o.teamName+" vs "+o.oppName+" — "+o.scopeLabel;
 
   const capture = ()=>{
     html2canvas(holder, { backgroundColor:"#0a1526", width:1080, height:1350, scale:1, useCORS:true, logging:false })
@@ -1497,8 +1510,7 @@ function saveShareCard(btn, o){
         if(!blob) throw new Error("no blob");
         const file = new File([blob], fname, { type:"image/png" });
         if(navigator.canShare && navigator.canShare({ files:[file] })){
-          return navigator.share({ files:[file], title:"Triangle Report",
-            text: o.teamName+" vs "+o.oppName+" — "+o.scopeLabel }).catch(()=>{});
+          return navigator.share({ files:[file], title:"Triangle Report", text: shareText }).catch(()=>{});
         }
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
