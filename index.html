@@ -864,6 +864,16 @@ function renderSetup(){
   startBtn.addEventListener("click", ()=>{
     const t = teamInput.value.trim() || "Our Team";
     const o = oppInput.value.trim() || "Opponent";
+    // Never drop an in-progress match: archive it (if it has any data) before starting a new one.
+    if(state.current){
+      const c = state.current;
+      if(c.activeSet && c.activeSet.rallies.length > 0) c.sets.push(c.activeSet);
+      if(c.sets.length > 0){
+        c.finishedAt = c.finishedAt || new Date().toISOString();
+        state.matches.push(c);
+      }
+      state.current = null;
+    }
     state.teamName = t; state.oppName = o;
     state.current = newMatch(t,o);
     state.screen = "match";
