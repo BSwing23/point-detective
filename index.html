@@ -1253,16 +1253,20 @@ function renderReports(){
     return wrap;
   }
 
-  window._reportScope = window._reportScope || "set";
-  const tabs = el("div",{class:"scope-tabs"});
-  const scopes = [["set","This Set"],["match","This Match"],["season","Season"]];
-  scopes.forEach(([key,label])=>{
-    if(key!=="season" && !state.current) return;
-    const btn = el("button",{text:label, class: window._reportScope===key ? "active":""});
-    btn.addEventListener("click", ()=>{ window._reportScope = key; render(); });
-    tabs.appendChild(btn);
-  });
-  wrap.appendChild(tabs);
+  // This Set / This Match / Season only make sense while a match is live.
+  // With no live match there's just the season's sets — show them, no tab bar.
+  const hasLive = !!state.current;
+  window._reportScope = hasLive ? (window._reportScope || "set") : "season";
+
+  if(hasLive){
+    const tabs = el("div",{class:"scope-tabs"});
+    [["set","This Set"],["match","This Match"],["season","Season"]].forEach(([key,label])=>{
+      const btn = el("button",{text:label, class: window._reportScope===key ? "active":""});
+      btn.addEventListener("click", ()=>{ window._reportScope = key; render(); });
+      tabs.appendChild(btn);
+    });
+    wrap.appendChild(tabs);
+  }
 
   const seasonSelected = window._reportScope === "season"
     ? getAllHistoricalSets().filter(h => !seasonDeselected.has(h.key))
@@ -1317,8 +1321,10 @@ function renderReports(){
   if(tri.totalRallies === 0){
     wrap.appendChild(el("div",{class:"empty-state"},[
       el("div",{class:"glyph", text:"🏐"}),
-      el("h3",{text:"Nothing logged in this scope yet"}),
-      el("p",{text:"Try a different scope, or log a few rallies first."})
+      el("h3",{text: hasLive ? "Nothing logged here yet" : "No matches logged yet"}),
+      el("p",{text: hasLive
+        ? "Log a few rallies, or switch to This Match / Season."
+        : "Log a match and your Phase stats will show up here."})
     ]));
   } else {
     const card = el("div",{class:"tri-card"});
@@ -1400,7 +1406,7 @@ function renderReports(){
     ]));
 
     wrap.appendChild(card);
-    wrap.appendChild(el("div",{class:"tri-scope-note", text: tri.totalRallies + " rallies in this scope"}));
+    wrap.appendChild(el("div",{class:"tri-scope-note", text: tri.totalRallies + (tri.totalRallies === 1 ? " rally" : " rallies")}));
 
     const shareBtn = el("button",{class:"btn btn-secondary", text:"🖼 Share Card"});
     shareBtn.addEventListener("click", ()=> saveShareCard(shareBtn, {
