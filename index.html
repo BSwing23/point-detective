@@ -278,6 +278,10 @@
   .tri-legend .sw.orange{background:#c1682f;}
   .tri-legend .sw.red{background:#c0392b;}
   .tri-scope-note{text-align:center;font-size:11px;color:var(--grey-500);font-weight:600;padding-top:2px;}
+  .sharecard-choice{background:var(--navy-900);border:1px solid var(--navy-600);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px;align-items:center;}
+  .sharecard-choice-title{font-size:11px;font-weight:800;color:var(--grey-300);text-transform:uppercase;letter-spacing:0.08em;}
+  .sharecard-choice-row{display:flex;gap:10px;width:100%;}
+  .sharecard-choice-row .btn{flex:1;padding:14px;}
   .tri-note{
     font-size:11px;line-height:1.5;color:#5a6478;font-style:italic;
     padding:12px 20px 16px;border-top:1px solid #eef1f5;background:#f9fafc;
@@ -1406,6 +1410,8 @@ function saveShareCard(btn, o){
     alert("The share tool hasn't loaded yet — check your connection and try again.");
     return;
   }
+  const stale = document.querySelector(".sharecard-choice");
+  if(stale) stale.remove();
   btn._busy = true;
   const originalText = btn.textContent;
   btn.textContent = "Rendering…";
@@ -1495,7 +1501,7 @@ function saveShareCard(btn, o){
 
   document.body.appendChild(holder);
 
-  const cleanup = ()=>{ holder.remove(); btn.textContent = originalText; btn.removeAttribute("disabled"); btn._busy = false; };
+  const restoreBtn = ()=>{ btn.textContent = originalText; btn.removeAttribute("disabled"); btn._busy = false; };
   const safe = (v)=> String(v).trim().replace(/[^\w]+/g,"_").replace(/^_+|_+$/g,"") || "x";
   const matchup = o.scopeKey === "season" ? safe(o.teamName) : safe(o.teamName)+"-vs-"+safe(o.oppName);
   const fname = "point-detective-"+matchup+"-"+safe(o.scopeLabel)+"-card.png";
@@ -1503,23 +1509,44 @@ function saveShareCard(btn, o){
     ? o.teamName+" — Season"
     : o.teamName+" vs "+o.oppName+" — "+o.scopeLabel;
 
+  function downloadPng(blob){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 5000);
+  }
+
+  function showChoice(blob){
+    const file = new File([blob], fname, { type:"image/png" });
+    const canShare = !!(navigator.canShare && navigator.canShare({ files:[file] }));
+
+    const box = el("div",{class:"sharecard-choice"});
+    box.appendChild(el("div",{class:"sharecard-choice-title", text:"Card ready"}));
+    const row = el("div",{class:"sharecard-choice-row"});
+    if(canShare){
+      row.appendChild(el("button",{class:"btn btn-secondary", text:"Share", onClick:()=>{
+        navigator.share({ files:[file], title:"Triangle Report", text: shareText }).catch(()=>{}).then(()=> box.remove());
+      }}));
+    }
+    row.appendChild(el("button",{class:"btn btn-primary", text:"Download", onClick:()=>{ downloadPng(blob); box.remove(); }}));
+    box.appendChild(row);
+    box.appendChild(el("button",{class:"link-btn", text:"Cancel", onClick:()=> box.remove()}));
+
+    if(btn && btn.parentNode) btn.parentNode.insertBefore(box, btn.nextSibling);
+    else { downloadPng(blob); }   // button gone (re-rendered) — just download
+  }
+
   const capture = ()=>{
     html2canvas(holder, { backgroundColor:"#0a1526", width:1080, height:1350, scale:1, useCORS:true, logging:false })
       .then((canvas)=> new Promise((res)=> canvas.toBlob((b)=>res(b), "image/png")))
       .then((blob)=>{
+        holder.remove();
         if(!blob) throw new Error("no blob");
-        const file = new File([blob], fname, { type:"image/png" });
-        if(navigator.canShare && navigator.canShare({ files:[file] })){
-          return navigator.share({ files:[file], title:"Triangle Report", text: shareText }).catch(()=>{});
-        }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; a.download = fname;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(()=> URL.revokeObjectURL(url), 5000);
+        showChoice(blob);
       })
-      .catch((e)=>{ console.error("share card failed:", e); alert("Couldn't render the share card. Try again."); })
-      .then(cleanup);
+      .catch((e)=>{ holder.remove(); console.error("share card failed:", e); alert("Couldn't render the share card. Try again."); })
+      .then(restoreBtn);
   };
 
   if(logo.complete && logo.naturalWidth) capture();
