@@ -1522,7 +1522,13 @@ function saveShareCard(btn, o){
   const restoreBtn = ()=>{ btn.textContent = originalText; btn.removeAttribute("disabled"); btn._busy = false; };
   const safe = (v)=> String(v).trim().replace(/[^\w]+/g,"_").replace(/^_+|_+$/g,"") || "x";
   const matchup = o.scopeKey === "season" ? safe(o.teamName) : safe(o.teamName)+"-vs-"+safe(o.oppName);
-  const fname = "point-detective-"+matchup+"-"+safe(o.scopeLabel)+"-card.png";
+  // Timestamp keeps every export a distinct file so a sequence of cards never
+  // overwrites the previous download.
+  const p2 = (n)=> String(n).padStart(2,"0");
+  const now = new Date();
+  const stamp = "" + now.getFullYear() + p2(now.getMonth()+1) + p2(now.getDate())
+    + "-" + p2(now.getHours()) + p2(now.getMinutes()) + p2(now.getSeconds());
+  const fname = "point-detective-"+matchup+"-"+safe(o.scopeLabel)+"-card-"+stamp+".png";
   const shareText = o.scopeKey === "season"
     ? o.teamName+" — Season"
     : o.teamName+" vs "+o.oppName+" — "+o.scopeLabel;
@@ -1623,7 +1629,11 @@ function saveTriangleSnapshot(btn, card, teamName, oppName, scopeLabel){
   };
 
   const safe = (v)=> String(v).trim().replace(/[^\w]+/g,"_").replace(/^_+|_+$/g,"") || "x";
-  const fname = "point-detective-"+safe(teamName)+"-vs-"+safe(oppName)+"-"+safe(scopeLabel)+".png";
+  const p2 = (n)=> String(n).padStart(2,"0");
+  const now = new Date();
+  const stamp = "" + now.getFullYear() + p2(now.getMonth()+1) + p2(now.getDate())
+    + "-" + p2(now.getHours()) + p2(now.getMinutes()) + p2(now.getSeconds());
+  const fname = "point-detective-"+safe(teamName)+"-vs-"+safe(oppName)+"-"+safe(scopeLabel)+"-"+stamp+".png";
 
   const capture = ()=>{
     html2canvas(holder, { backgroundColor:"#ffffff", scale:2, useCORS:true, logging:false })
