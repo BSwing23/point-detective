@@ -745,8 +745,8 @@ function endSet(){
   }
   if(!confirm("End Set " + s.setNumber + " (" + s.scoreUs + "–" + s.scoreOpp + ") and start the next set?")) return;
   c.sets.push(s);
-  const loserOfSet = s.scoreUs > s.scoreOpp ? "opp" : "us";
-  c.activeSet = newSet(c.sets.length + 1, loserOfSet);
+  // No auto-assigned server — every set starts on the "Who serves first?" picker, like Set 1.
+  c.activeSet = newSet(c.sets.length + 1, null);
   saveState();
   render();
 }
