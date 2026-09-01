@@ -226,7 +226,7 @@
   .rally-item .what.fbk{color:var(--gold);}
   .rally-item .score-after{color:var(--grey-500);font-weight:700;font-variant-numeric:tabular-nums;}
 
-  /* ---------- Triangle Report (light card, matches Serve Triangle Logger style) ---------- */
+  /* ---------- Phase Report (light card) ---------- */
   .tri-card{
     background:#ffffff;border-radius:var(--radius-lg);overflow:hidden;
     box-shadow:0 8px 28px rgba(0,0,0,0.35);
@@ -356,7 +356,7 @@
 <!-- Lemon Squeezy overlay checkout -->
 <script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
 
-<!-- html2canvas — Save Snapshot export in the Triangle Report -->
+<!-- html2canvas — Save Snapshot export in the Phase Report -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 
 <script>
@@ -1243,7 +1243,7 @@ function renderReports(){
     wrap.appendChild(el("div",{class:"empty-state"},[
       el("div",{class:"glyph", text:"🔍"}),
       el("h3",{text:"No data yet"}),
-      el("p",{text:"Start a match and log a few rallies — your Triangle stats will show up here."})
+      el("p",{text:"Start a match and log a few rallies — your Phase stats will show up here."})
     ]));
     wrap.appendChild(el("button",{class:"btn btn-primary", text:"◂ Back", onClick:()=>{state.screen = state.current?"match":"setup"; render();}}));
     return wrap;
@@ -1324,7 +1324,7 @@ function renderReports(){
       scoreSegs = (su + so) > 0 ? [[su, so]] : [];
     }
     card.appendChild(el("div",{class:"tri-header"},[
-      el("h2",{text:"TRIANGLE REPORT"}),
+      el("h2",{text:"PHASE REPORT"}),
       el("p",{text: headerSub})
     ]));
     card.appendChild(el("div",{class:"tri-colheader"},[
@@ -1526,7 +1526,7 @@ function saveShareCard(btn, o){
     const row = el("div",{class:"sharecard-choice-row"});
     if(canShare){
       row.appendChild(el("button",{class:"btn btn-secondary", text:"Share", onClick:()=>{
-        navigator.share({ files:[file], title:"Triangle Report", text: shareText }).catch(()=>{}).then(()=> box.remove());
+        navigator.share({ files:[file], title:"Phase Report", text: shareText }).catch(()=>{}).then(()=> box.remove());
       }}));
     }
     row.appendChild(el("button",{class:"btn btn-primary", text:"Download", onClick:()=>{ downloadPng(blob); box.remove(); }}));
@@ -1553,7 +1553,7 @@ function saveShareCard(btn, o){
   else { logo.onload = capture; logo.onerror = capture; }
 }
 
-/* -------- Export the full Triangle Report as one branded PNG -------- */
+/* -------- Export the full Phase Report as one branded PNG -------- */
 function saveTriangleSnapshot(btn, card, teamName, oppName, scopeLabel){
   if(btn._busy) return;
   if(typeof html2canvas === "undefined"){
@@ -1614,7 +1614,7 @@ function saveTriangleSnapshot(btn, card, teamName, oppName, scopeLabel){
         if(!blob) throw new Error("no blob");
         const file = new File([blob], fname, { type:"image/png" });
         if(navigator.canShare && navigator.canShare({ files:[file] })){
-          return navigator.share({ files:[file], title:"Triangle Report",
+          return navigator.share({ files:[file], title:"Phase Report",
             text: teamName+" vs "+oppName+" — "+scopeLabel }).catch(()=>{});
         }
         const url = URL.createObjectURL(blob);
@@ -1819,7 +1819,7 @@ function renderPaywall(){
     if(LS_PRICE_LABEL) card.appendChild(el("div",{class:"price", text: LS_PRICE_LABEL}));
     card.appendChild(el("ul",{},[
       el("li",{text:"Log every rally: serve, first ball kill, transition"}),
-      el("li",{text:"Triangle Report by set, match, and season"}),
+      el("li",{text:"Phase Report by set, match, and season"}),
       el("li",{text:"Tap any rally to fix it — the score recalculates"})
     ]));
     const go = el("button",{class:"btn btn-primary", text: LS_READY ? "Start Free Trial ▸" : "Checkout not set up yet"});
