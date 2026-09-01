@@ -1164,6 +1164,14 @@ function renderMatch(){
     ]));
   }
 
+  if(editingIndex === null){
+    wrap.appendChild(el("div",{class:"bottom-actions"},[
+      el("button",{class:"btn btn-secondary", text:"End Set", onClick:endSet}),
+      el("button",{class:"btn btn-ghost", text:"Finish Match", onClick:endMatch})
+    ]));
+    wrap.appendChild(el("div",{class:"actions-hint", text:"End Set starts the next set. Finish Match saves the whole match and closes it."}));
+  }
+
   if(s.rallies.length > 0){
     // Full rally list, most recent first, running score at time of each rally, tap to edit
     let runUs=0, runOpp=0;
@@ -1189,14 +1197,6 @@ function renderMatch(){
       ]));
     });
     wrap.appendChild(log);
-  }
-
-  if(editingIndex === null){
-    wrap.appendChild(el("div",{class:"bottom-actions"},[
-      el("button",{class:"btn btn-secondary", text:"End Set", onClick:endSet}),
-      el("button",{class:"btn btn-ghost", text:"Finish Match", onClick:endMatch})
-    ]));
-    wrap.appendChild(el("div",{class:"actions-hint", text:"End Set starts the next set. Finish Match saves the whole match and closes it."}));
   }
 
   return wrap;
