@@ -792,16 +792,20 @@ function getAllHistoricalSets(){
   state.matches.forEach((m, mi) => {
     const d = formatDate(m.createdAt);
     m.sets.forEach((s, si) => {
-      list.push({ key: `m${mi}-s${si}`, label: `${m.teamName} vs ${m.oppName} — Set ${s.setNumber}${d ? ` (${d})` : ""}`, set: s });
+      list.push({ key: `m${mi}-s${si}`, label: `${m.teamName} vs ${m.oppName} — Set ${s.setNumber}${d ? ` (${d})` : ""}`,
+        set: s, teamName: m.teamName, oppName: m.oppName, matchDate: d, setNumber: s.setNumber });
     });
   });
   if(state.current){
     const d = formatDate(state.current.createdAt);
+    const cn = { teamName: state.current.teamName, oppName: state.current.oppName };
     state.current.sets.forEach((s, si) => {
-      list.push({ key: `cur-s${si}`, label: `${state.current.teamName} vs ${state.current.oppName} — Set ${s.setNumber}${d ? ` (${d})` : ""}`, set: s });
+      list.push({ key: `cur-s${si}`, label: `${cn.teamName} vs ${cn.oppName} — Set ${s.setNumber}${d ? ` (${d})` : ""}`,
+        set: s, teamName: cn.teamName, oppName: cn.oppName, matchDate: d, setNumber: s.setNumber });
     });
     if(state.current.activeSet.rallies.length > 0){
-      list.push({ key: "cur-active", label: `${state.current.teamName} vs ${state.current.oppName} — Set ${state.current.activeSet.setNumber}${d ? ` (${d} · live)` : " (live)"}`, set: state.current.activeSet });
+      list.push({ key: "cur-active", label: `${cn.teamName} vs ${cn.oppName} — Set ${state.current.activeSet.setNumber}${d ? ` (${d} · live)` : " (live)"}`,
+        set: state.current.activeSet, teamName: cn.teamName, oppName: cn.oppName, matchDate: d, setNumber: state.current.activeSet.setNumber });
     }
   }
   return list;
@@ -1260,19 +1264,31 @@ function renderReports(){
   });
   wrap.appendChild(tabs);
 
-  const sets = window._reportScope === "season"
-    ? getAllHistoricalSets().filter(h=>!seasonDeselected.has(h.key)).map(h=>h.set)
+  const seasonSelected = window._reportScope === "season"
+    ? getAllHistoricalSets().filter(h => !seasonDeselected.has(h.key))
+    : null;
+  const sets = seasonSelected
+    ? seasonSelected.map(h => h.set)
     : allSetsInScope({type: window._reportScope});
   const tri = computeTriangle(sets);
+
+  // When the Season picker resolves to exactly one set, label the card as that
+  // specific set (matchup + set number), like the pill shows — not "Season".
+  const singleSeasonSet = (seasonSelected && seasonSelected.length === 1) ? seasonSelected[0] : null;
+  const effectiveScope = singleSeasonSet ? "set" : window._reportScope;
+
   // Set/Match scope always has state.current. For Season without a live match,
   // name from the most recently created match — not matches[0] (arbitrary order).
   const latestMatch = (state.matches || []).slice()
     .sort((a,b)=> String(b && b.createdAt || "").localeCompare(String(a && a.createdAt || "")))[0];
-  const nameSource = state.current || latestMatch || null;
+  const nameSource = state.current
+    || (singleSeasonSet ? { teamName: singleSeasonSet.teamName, oppName: singleSeasonSet.oppName } : null)
+    || latestMatch || null;
   const teamName = nameSource ? nameSource.teamName : "Us";
   const oppName = nameSource ? nameSource.oppName : "Opponent";
-  const scopeLabel = window._reportScope==="set" ? "Set " + (sets[0] ? sets[0].setNumber : 1)
-    : window._reportScope==="match" ? "Match" : "Season";
+  const scopeLabel = effectiveScope === "set"
+      ? "Set " + (singleSeasonSet ? singleSeasonSet.setNumber : (sets[0] ? sets[0].setNumber : 1))
+    : effectiveScope === "match" ? "Match" : "Season";
 
   if(window._reportScope === "season"){
     const allHist = getAllHistoricalSets();
@@ -1307,17 +1323,19 @@ function renderReports(){
   } else {
     const card = el("div",{class:"tri-card"});
 
-    const matchDate = (window._reportScope !== "season" && state.current) ? formatDate(state.current.createdAt) : "";
-    // Season sets can span multiple opponents — no single opponent name applies.
-    const headerSub = window._reportScope === "season"
+    const matchDate = (state.current && window._reportScope !== "season")
+      ? formatDate(state.current.createdAt)
+      : (singleSeasonSet ? singleSeasonSet.matchDate : "");
+    // A multi-set Season can span opponents — no single opponent name applies.
+    const headerSub = effectiveScope === "season"
       ? teamName + " — Season"
       : teamName+" vs "+oppName+" — "+scopeLabel + (matchDate ? " · "+matchDate : "");
 
     // Score line for the Share Card: this set's points, each set's points, or the season total.
     let scoreSegs;
-    if(window._reportScope === "set"){
+    if(effectiveScope === "set"){
       scoreSegs = sets[0] ? [[sets[0].scoreUs, sets[0].scoreOpp]] : [];
-    } else if(window._reportScope === "match"){
+    } else if(effectiveScope === "match"){
       scoreSegs = sets.filter(st => (st.scoreUs + st.scoreOpp) > 0).map(st => [st.scoreUs, st.scoreOpp]);
     } else {
       let su = 0, so = 0; sets.forEach(st => { su += st.scoreUs; so += st.scoreOpp; });
@@ -1387,7 +1405,7 @@ function renderReports(){
     const shareBtn = el("button",{class:"btn btn-secondary", text:"🖼 Share Card"});
     shareBtn.addEventListener("click", ()=> saveShareCard(shareBtn, {
       teamName, oppName, scopeLabel, matchDate,
-      scopeKey: window._reportScope, scoreSegs,
+      scopeKey: effectiveScope, scoreSegs,
       netTerm, usTerminalFor: tri.us.terminalFor, oppTerminalFor: tri.opp.terminalFor,
       netFbk, usFbkPct, oppFbkPct,
       netRally, usTransWins: tri.us.transWins, oppTransWins: tri.opp.transWins
