@@ -1377,16 +1377,7 @@ function renderReports(){
       oppName, tri.opp.fbkYes, `${tri.opp.fbkYes} / ${tri.opp.fbkReceives} receives`));
     card.appendChild(plainRow("FBK Kills",
       fmtPct(tri.us.fbkYes,tri.us.fbkReceives), `of ${tri.us.fbkReceives} receives`,
-      fmtPct(tri.opp.fbkYes,tri.opp.fbkReceives), `of ${tri.opp.fbkReceives} receives`,
-      zoneClass(usFbkPct), zoneClass(oppFbkPct)));
-
-    card.appendChild(el("div",{class:"tri-legend-header"}, "FBK% ZONES"));
-    card.appendChild(el("div",{class:"tri-legend"},[
-      el("span",{},[el("span",{class:"sw green"}), "48%+ Championship"]),
-      el("span",{},[el("span",{class:"sw gold"}), "44–47% Average"]),
-      el("span",{},[el("span",{class:"sw orange"}), "39–43% Inconsistent"]),
-      el("span",{},[el("span",{class:"sw red"}), "<39% Danger zone"])
-    ]));
+      fmtPct(tri.opp.fbkYes,tri.opp.fbkReceives), `of ${tri.opp.fbkReceives} receives`));
 
     // TRANSITION
     const netRally = tri.us.transWins - tri.opp.transWins;
