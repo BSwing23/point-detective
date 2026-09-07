@@ -508,6 +508,39 @@ function saveState(){
   queueCloudPush();
 }
 
+// Wipe all match history — this device AND the account's cloud copy on every device.
+function clearAllData(){
+  if(!confirm("Delete ALL match history and start over?\n\nThis clears every match on this device and in your account (all devices). It can't be undone.")) return;
+
+  if(cloudPushTimer){ clearTimeout(cloudPushTimer); cloudPushTimer = null; }
+
+  state = { screen: "setup", teamName: "", oppName: "", matches: [], current: null };
+  editingIndex = null;
+  editDraft = null;
+  seasonDeselected = new Set();
+  window._reportScope = null;
+  uiScreen = null;
+
+  try{
+    localStorage.removeItem(storageKey());
+    localStorage.removeItem(LEGACY_KEY);
+    localStorage.removeItem(LEGACY_KEY + "__archived");
+  }catch(e){}
+
+  const emptyDoc = { teamName: "", oppName: "", matches: [], current: null };
+  lastPushJSON = JSON.stringify(emptyDoc);
+  if(FIREBASE_READY && authUser && fdb){
+    fdb.collection("matchData").doc(authUser.uid).set(Object.assign({}, emptyDoc, {
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      clientAt: Date.now()
+    })).catch(function(e){ console.warn("clear cloud data failed:", e && e.message); });
+  }
+
+  saveStateLocalOnly();
+  render();
+  toast("All match data cleared.");
+}
+
 function hasAccess(){
   if(!FIREBASE_READY) return true;
   if(!subDoc) return false;
@@ -1892,6 +1925,8 @@ function renderAccount(){
       onClick:()=>{ window.location.href = subDoc.customer_portal_url; }}));
   }
   wrap.appendChild(el("button",{class:"btn btn-secondary", text:"◂ Back to App", onClick:()=>{ uiScreen=null; render(); }}));
+  wrap.appendChild(el("button",{class:"btn btn-ghost", text:"Clear All Match Data",
+    style:"color:var(--red);border-color:var(--red)", onClick: clearAllData}));
   wrap.appendChild(el("button",{class:"btn btn-ghost", text:"Log Out", onClick: doLogout}));
   return wrap;
 }
