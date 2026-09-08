@@ -1071,6 +1071,10 @@ function renderSetup(){
   });
   tools.appendChild(el("button",{class:"link-btn", text:"Import history", onClick:()=> fileInput.click()}));
   tools.appendChild(fileInput);
+  if(state.matches.length > 0 || state.current){
+    tools.appendChild(el("span",{class:"tools-sep", text:"·"}));
+    tools.appendChild(el("button",{class:"link-btn", text:"Clear history", style:"color:var(--red)", onClick: clearAllData}));
+  }
   wrap.appendChild(tools);
 
   wrap.appendChild(el("div",{class:"setup-tools-note", text: syncText()}));
