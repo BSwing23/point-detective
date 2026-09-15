@@ -1451,7 +1451,8 @@ function renderReports(){
       scopeKey: effectiveScope, scoreSegs,
       netTerm, usTerminalFor: tri.us.terminalFor, oppTerminalFor: tri.opp.terminalFor,
       netFbk, usFbkPct, oppFbkPct,
-      netRally, usTransWins: tri.us.transWins, oppTransWins: tri.opp.transWins
+      netRally, usTransWins: tri.us.transWins, oppTransWins: tri.opp.transWins,
+      usRcvPct: pct(tri.us.rcvWins, tri.us.rcvTotal), oppRcvPct: pct(tri.opp.rcvWins, tri.opp.rcvTotal)
     }));
     wrap.appendChild(shareBtn);
 
@@ -1557,6 +1558,22 @@ function saveShareCard(btn, o){
   statBlock("Terminal", o.netTerm, o.usTerminalFor, o.oppTerminalFor);
   statBlock("FBK", o.netFbk, fbk(o.usFbkPct), fbk(o.oppFbkPct));
   statBlock("Rally Wins", o.netRally, o.usTransWins, o.oppTransWins);
+
+  // Rcv Comeback — a small footnote line, not a fourth stat block, so it doesn't
+  // change the card's size or draw the eye like the three boxes above it.
+  const rcvLine = document.createElement("div");
+  rcvLine.style.cssText = "margin-top:20px;font-size:19px;color:"+GREY+";display:flex;align-items:center;gap:10px;";
+  const rcvLabel = document.createElement("span");
+  rcvLabel.style.cssText = "font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:"+GOLD+";opacity:.8;";
+  rcvLabel.textContent = "Rcv Comeback";
+  const rcvSep = document.createElement("span"); rcvSep.style.color = GREY; rcvSep.textContent = "·";
+  rcvLine.appendChild(rcvLabel);
+  rcvLine.appendChild(rcvSep);
+  rcvLine.appendChild(teamSpan(o.teamName, fbk(o.usRcvPct), US));
+  const rcvSep2 = document.createElement("span"); rcvSep2.style.cssText = "margin:0 2px;color:"+GREY+";"; rcvSep2.textContent = "·";
+  rcvLine.appendChild(rcvSep2);
+  rcvLine.appendChild(teamSpan(o.oppName, fbk(o.oppRcvPct), OPP));
+  holder.appendChild(rcvLine);
 
   add("div","margin-top:auto;padding-top:30px;font-size:22px;font-weight:600;color:"+GREY+";","www.VBPointDetective.com");
 
