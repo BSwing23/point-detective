@@ -1324,11 +1324,14 @@ function renderReports(){
   const singleSeasonSet = (seasonSelected && seasonSelected.length === 1) ? seasonSelected[0] : null;
   const effectiveScope = singleSeasonSet ? "set" : window._reportScope;
 
-  // Set/Match scope always has state.current. For Season without a live match,
-  // name from the most recently created match — not matches[0] (arbitrary order).
+  // Set/Match scope always has state.current. For Season, never name from
+  // state.current — a match "in progress" on this device (even an empty stub
+  // started here) isn't what the season aggregate represents, and can be stale
+  // or foreign once cloud sync pulls in matches logged on another device.
+  // Name from the most recently created match instead — not matches[0] (arbitrary order).
   const latestMatch = (state.matches || []).slice()
     .sort((a,b)=> String(b && b.createdAt || "").localeCompare(String(a && a.createdAt || "")))[0];
-  const nameSource = state.current
+  const nameSource = (window._reportScope !== "season" && state.current)
     || (singleSeasonSet ? { teamName: singleSeasonSet.teamName, oppName: singleSeasonSet.oppName } : null)
     || latestMatch || null;
   const teamName = nameSource ? nameSource.teamName : "Us";
