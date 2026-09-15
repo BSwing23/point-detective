@@ -114,13 +114,15 @@
     border:1px solid var(--navy-700);border-radius:var(--radius-lg);
     padding:18px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;
   }
-  .score-team{flex:1;text-align:center;}
+  .score-team{flex:1;text-align:center;cursor:pointer;}
   .score-team .name{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--grey-300);font-weight:700;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .score-team .score{font-size:44px;font-weight:900;line-height:1.1;margin-top:2px;}
   .score-team.us .score{color:var(--gold);}
   .score-team.opp .score{color:var(--white);}
+  .score-mid-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;}
   .score-mid{font-size:12px;color:var(--grey-500);font-weight:800;padding:0 4px;}
+  .flip-icon{font-size:14px;color:var(--grey-500);}
   .set-pill{
     align-self:center;background:var(--navy-700);color:var(--grey-300);font-size:11px;font-weight:800;
     padding:4px 10px;border-radius:999px;letter-spacing:0.06em;
@@ -617,6 +619,7 @@ if(FIREBASE_READY){
 let state = loadState();
 let editingIndex = null;
 let editDraft = null;
+let displaySidesFlipped = false;      // display-only: which side "us"/"opp" render on in the live scoreboard; not persisted, doesn't touch any data
 
 /* -------- Recompute a set's server chain + score after an edit/delete -------- */
 function recomputeChain(s){
@@ -1139,12 +1142,15 @@ function renderMatch(){
   const c = state.current;
   const s = c.activeSet;
 
-  // Scoreboard
-  wrap.appendChild(el("div",{class:"scoreboard"},[
-    el("div",{class:"score-team us"},[el("div",{class:"name",text:c.teamName}), el("div",{class:"score",text:s.scoreUs})]),
-    el("div",{},[el("div",{class:"score-mid",text:"VS"}), el("div",{class:"set-pill", text:"SET "+s.setNumber})]),
-    el("div",{class:"score-team opp"},[el("div",{class:"name",text:c.oppName}), el("div",{class:"score",text:s.scoreOpp})])
-  ]));
+  // Scoreboard — "us" is always gold and "opp" always white; displaySidesFlipped only changes
+  // which side of the screen each renders on (a viewing preference), never the underlying data.
+  const flipSides = ()=>{ displaySidesFlipped = !displaySidesFlipped; render(); };
+  const usBlock = el("div",{class:"score-team us", onClick:flipSides},[el("div",{class:"name",text:c.teamName}), el("div",{class:"score",text:s.scoreUs})]);
+  const oppBlock = el("div",{class:"score-team opp", onClick:flipSides},[el("div",{class:"name",text:c.oppName}), el("div",{class:"score",text:s.scoreOpp})]);
+  const midBlock = el("div",{class:"score-mid-wrap", onClick:flipSides},[el("div",{class:"score-mid",text:"VS"}), el("span",{class:"flip-icon", title:"Tap to flip sides", text:"⇄"}), el("div",{class:"set-pill", text:"SET "+s.setNumber})]);
+  wrap.appendChild(el("div",{class:"scoreboard"},
+    displaySidesFlipped ? [oppBlock, midBlock, usBlock] : [usBlock, midBlock, oppBlock]
+  ));
 
   if(s.serving){
     wrap.appendChild(el("div",{class:"serving-indicator"},[
