@@ -236,6 +236,12 @@
   .tri-header{background:var(--navy-950);padding:18px 20px;}
   .tri-header h2{margin:0;color:#fff;font-size:17px;font-weight:800;letter-spacing:0.01em;}
   .tri-header p{margin:4px 0 0;color:var(--grey-300);font-size:12px;}
+  .tri-score{margin-top:8px;font-size:18px;font-weight:800;color:var(--grey-300);}
+  .tri-score .tri-score-lbl{font-size:10px;font-weight:800;letter-spacing:0.1em;color:var(--grey-500);}
+  .tri-score .tri-score-sep{font-size:14px;font-weight:600;color:var(--grey-500);margin:0 2px;}
+  .tri-score .u{color:#6ea8e6;}
+  .tri-score .o{color:#d0556c;}
+  .tri-score .dash{color:var(--grey-500);margin:0 4px;font-weight:600;}
   .tri-colheader{
     display:flex;padding:10px 20px;font-size:11px;font-weight:800;letter-spacing:0.06em;
     color:#8a94a6;background:#f4f6f9;border-bottom:1px solid #e7ebf1;
@@ -1383,7 +1389,9 @@ function renderReports(){
       ? teamName + " — Season"
       : teamName+" vs "+oppName+" — "+scopeLabel + (matchDate ? " · "+matchDate : "");
 
-    // Score line for the Share Card: this set's points, each set's points, or the season total.
+    // Final score: this set's points, each set's points, or the season total. Shown in the
+    // header (so it flows into the Save Snapshot export, which clones this card) and passed
+    // to the Share Card below.
     let scoreSegs;
     if(effectiveScope === "set"){
       scoreSegs = sets[0] ? [[sets[0].scoreUs, sets[0].scoreOpp]] : [];
@@ -1393,9 +1401,23 @@ function renderReports(){
       let su = 0, so = 0; sets.forEach(st => { su += st.scoreUs; so += st.scoreOpp; });
       scoreSegs = (su + so) > 0 ? [[su, so]] : [];
     }
+    const scoreLbl = effectiveScope === "set" ? "SET SCORE" : effectiveScope === "match" ? "BY SET" : "TOTAL POINTS";
+    const scoreNodes = [];
+    scoreSegs.forEach(([u,x], i)=>{
+      if(i>0) scoreNodes.push(el("span",{class:"tri-score-sep", text:", "}));
+      scoreNodes.push(el("span",{class:"tri-score-seg"},[
+        el("span",{class:"u",text:String(u)}),
+        el("span",{class:"dash",text:"–"}),
+        el("span",{class:"o",text:String(x)})
+      ]));
+    });
     card.appendChild(el("div",{class:"tri-header"},[
       el("h2",{text:"PHASE REPORT"}),
-      el("p",{text: headerSub})
+      el("p",{text: headerSub}),
+      scoreSegs.length ? el("div",{class:"tri-score"},[
+        el("span",{class:"tri-score-lbl", text: scoreLbl + "  "}),
+        ...scoreNodes
+      ]) : null
     ]));
     card.appendChild(el("div",{class:"tri-colheader"},[
       el("span",{class:"m", text:"METRIC"}),
