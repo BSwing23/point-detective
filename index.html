@@ -1535,10 +1535,14 @@ function renderReports(){
 
     card.appendChild(el("div",{class:"tri-section", text:"SERVING STRATEGY"}));
     const strat = el("div",{class:"tri-strat"});
+    const usRatioSub = tri.us.aces > 0
+      ? `roughly 1 ace per ${(tri.us.ownErrors / tri.us.aces).toFixed(1)} errors`
+      : "No aces yet";
     strat.appendChild(el("div",{class:"tri-strat-row"},[
       el("div",{class:"lbl", text:"Your Ace : Error Mix"}),
       el("div",{class:"big", text: pctOrDash(usAceShare)}),
-      el("div",{class:"sub", text: `${tri.us.aces} aces, ${tri.us.ownErrors} errors, n=${usAE}`})
+      el("div",{class:"sub", text: `${tri.us.aces} aces, ${tri.us.ownErrors} errors, n=${usAE}`}),
+      el("div",{class:"sub", text: usRatioSub})
     ]));
     strat.appendChild(el("div",{class:"tri-strat-row"},[
       el("div",{class:"lbl", text: oppName + "'s RSO%"}),
