@@ -1562,10 +1562,10 @@ function renderReports(){
       const prefix = confN < 10 ? "Early read: " : confN < 25 ? "Developing pattern: " : "Established: ";
       if(diff > 5){
         verdictClass = "pos";
-        verdictText = prefix + "You have room to serve more aggressively against this opponent.";
+        verdictText = prefix + "Your aggression is paying off here, exceeds breakeven against this opponent.";
       } else if(diff < -5){
         verdictClass = "neg";
-        verdictText = prefix + "Your aggression is paying off here, current ace rate exceeds breakeven.";
+        verdictText = prefix + "Your current aggression isn't paying off against this opponent, consider tightening up your serve.";
       } else {
         verdictClass = "neutral";
         verdictText = prefix + "Your current aggression level is close to breakeven against this opponent.";
