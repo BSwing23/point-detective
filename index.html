@@ -295,6 +295,10 @@
     padding:12px 20px 16px;border-top:1px solid #eef1f5;background:#f9fafc;
   }
   .tri-note b{color:#42506b;font-weight:800;font-style:normal;}
+  .tri-caption{
+    font-size:10px;font-weight:600;line-height:1.4;color:#8a94a6;
+    padding:8px 20px 16px;border-top:1px solid #e2e7ee;
+  }
   .tri-strat-row{padding:12px 20px;border-bottom:1px solid #eef1f5;}
   .tri-strat-row .lbl{font-size:10px;font-weight:800;letter-spacing:0.05em;color:#8a94a6;text-transform:uppercase;}
   .tri-strat-row .big{font-size:24px;font-weight:900;color:#1a2333;margin-top:2px;}
@@ -1516,10 +1520,8 @@ function renderReports(){
     card.appendChild(plainRow("RSO% (rally only)",
       pctOrDash(usRSOPct), `of ${tri.us.fbkReceives} in-play receives`,
       pctOrDash(oppRSOPct), `of ${tri.opp.fbkReceives} in-play receives`));
-    card.appendChild(el("div",{class:"tri-note"},[
-      el("b",{text:"PS%/SO% vs RPS%/RSO%: "}),
-      "PS%/SO% count every serve, aces and errors included. RPS%/RSO% only look at rallies that stayed in play, isolating serve-receive skill from serving risk."
-    ]));
+    card.appendChild(el("div",{class:"tri-caption"},
+      "RPS% and RSO% exclude aces and errors, they measure only rallies where the serve stayed in play."));
 
     // SERVING STRATEGY — is the current ace:error mix worth the risk against this
     // opponent's actual rally side-out rate? Breakeven ace share = 1 − opponent's
